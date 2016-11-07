@@ -32,6 +32,9 @@ namespace LersBot
 			this.bot.OnMessage += Bot_OnMessage;
 		}
 
+		/// <summary>
+		/// Запускает бота.
+		/// </summary>
 		internal void Start()
 		{
 			this.bot.StartReceiving();
@@ -40,8 +43,6 @@ namespace LersBot
 		private void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
 		{
 			// Проверим от кого поступила команда.
-
-			LersServer server = null;
 
 			long chatId = e.Message.Chat.Id;
 
@@ -62,13 +63,11 @@ namespace LersBot
 						Config.SaveContexts();
 					}
 
-					// Подключаемся к серверу
+					// Подключаемся к серверу.
+					ConnectToServer(user);
 
-					server = Connect(user);
-
-					ProcessCommand(server, chatId, e.Message.Text);
-
-					server.Disconnect(10000);
+					// Обрабатываем команду.
+					ProcessCommand(user.Context.Server, chatId, e.Message.Text);
 				}
 			}
 			catch (Exception exc)
@@ -78,12 +77,14 @@ namespace LersBot
 				bot.SendTextMessageAsync(chatId, message);
 
 				Console.WriteLine(message);
+			}
+		}
 
-				if (server != null)
-				{
-					server.Disconnect(10000);
-					server.Dispose();
-				}
+		private void ConnectToServer(UserName user)
+		{
+			if (user.Context.Server == null || !user.Context.Server.IsConnected)
+			{
+				user.Context.Server = Connect(user);
 			}
 		}
 

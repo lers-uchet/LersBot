@@ -87,6 +87,9 @@ namespace LersBot
 
 		public long ChatId;
 
-		public UserContext() {  }
+		/// <summary>
+		/// Подключение к серверу ЛЭРС УЧЁТ, связанное с пользователем.
+		/// </summary>
+		internal Lers.LersServer Server;
 	}
 }
