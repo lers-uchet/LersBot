@@ -43,21 +43,30 @@ namespace LersBot
 
 			LersServer server = null;
 
+			long chatId = e.Message.Chat.Id;
+
 			try
 			{
 				UserName user = Config.Instance.Users.Where(u => u.TelegramUser == e.Message.From.Username || u.TelegramUser == "<anonymous>").FirstOrDefault();
 
 				if (user == null)
 				{
-					bot.SendTextMessageAsync(e.Message.Chat.Id, "Извините, я вас не знаю.");
+					bot.SendTextMessageAsync(chatId, "Извините, я вас не знаю.");
 				}
 				else
 				{
+					if (user.Context.ChatId != chatId)
+					{
+						user.Context.ChatId = chatId;
+
+						Config.SaveContexts();
+					}
+
 					// Подключаемся к серверу
 
 					server = Connect(user);
 
-					ProcessCommand(server, e.Message.Chat.Id, e.Message.Text);
+					ProcessCommand(server, chatId, e.Message.Text);
 
 					server.Disconnect(10000);
 				}
@@ -66,7 +75,7 @@ namespace LersBot
 			{
 				var message = $"Ошибка обработки команды. {exc.Message}";
 
-				bot.SendTextMessageAsync(e.Message.Chat.Id, message);
+				bot.SendTextMessageAsync(chatId, message);
 
 				Console.WriteLine(message);
 

@@ -120,6 +120,8 @@ namespace LersBot
 				default: throw new InvalidOperationException("Неверный тип ресурса");
 			}
 
+			var sb = new StringBuilder();
+
 			for (int i = 0; i < valueNames.Count; ++i)
 			{
 				double? val = record.GetValue(valueNames[i]);
@@ -128,9 +130,11 @@ namespace LersBot
 				{
 					string text = $"{valueNames[i]} = {val.Value:f2}";
 
-					bot.SendText(chatId, text);
+					sb.AppendLine(text);
 				}
 			}
+
+			bot.SendText(chatId, System.Web.HttpUtility.HtmlEncode(sb.ToString()));
 		}
 
 		private static void ShowNodes(LersServer server, long chatId, string[] arguments)
