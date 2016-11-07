@@ -58,6 +58,8 @@ namespace LersBot
 					server = Connect(user);
 
 					ProcessCommand(server, e.Message.Chat.Id, e.Message.Text);
+
+					server.Disconnect(10000);
 				}
 			}
 			catch (Exception exc)

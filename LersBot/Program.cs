@@ -89,8 +89,6 @@ namespace LersBot
 			}
 
 			server.RemoveNotification(notifyToken);
-
-			server.Disconnect(10000);
 		}
 
 		private static void SendCurrents(long chatId, MeasurePointConsumptionRecord record)
