@@ -77,7 +77,14 @@ namespace LersBot
 				{
 					if (notification.Id > user.Context.LastNotificationId)
 					{
-						bot.SendText(user.Context.ChatId, notification.Message);
+						string text = notification.Message;
+
+						if (!string.IsNullOrEmpty(notification.Url))
+						{
+							text += $"\r\n{notification.Url}";
+						}
+
+						bot.SendText(user.Context.ChatId, text);
 					}
 				}
 			}
