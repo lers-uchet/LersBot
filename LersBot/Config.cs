@@ -54,9 +54,12 @@ namespace LersBot
 
 		public static void SaveContexts()
 		{
-			string contextText = JsonConvert.SerializeObject(Instance.Contexts);
+			lock (Instance)
+			{
+				string contextText = JsonConvert.SerializeObject(Instance.Contexts);
 
-			File.WriteAllText(ContextPath, contextText);
+				File.WriteAllText(ContextPath, contextText);
+			}
 		}
 
 		public string Token { get; set; }
@@ -79,17 +82,22 @@ namespace LersBot
 		public string LersPassword { get; set; }
 
 		internal UserContext Context;
-	}
 
-	class UserContext
-	{
-		public string UserName;
+		public  void Connect()
+		{
+			if (this.Context.Server == null)
+			{
+				this.Context.Server = new Lers.LersServer();
+			}
 
-		public long ChatId;
+			if (!this.Context.Server.IsConnected)
+			{
+				var auth = new Lers.Networking.BasicAuthenticationInfo(this.LersUser, Lers.Networking.SecureStringHelper.ConvertToSecureString(this.LersPassword));
 
-		/// <summary>
-		/// Подключение к серверу ЛЭРС УЧЁТ, связанное с пользователем.
-		/// </summary>
-		internal Lers.LersServer Server;
+				this.Context.Server.VersionMismatch += (sender, e) => e.Ignore = true;
+
+				this.Context.Server.Connect(Config.Instance.LersServerAddress, Config.Instance.LersServerPort, auth);
+			}
+		}
 	}
 }

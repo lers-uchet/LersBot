@@ -37,6 +37,12 @@ namespace LersBot
 		/// </summary>
 		internal void Start()
 		{
+			// Инициируем подключения к серверу
+			foreach (UserName user in Config.Instance.Users)
+			{
+				user.Connect();
+			}
+
 			this.bot.StartReceiving();
 		}
 
@@ -64,7 +70,7 @@ namespace LersBot
 					}
 
 					// Подключаемся к серверу.
-					ConnectToServer(user);
+					user.Connect();
 
 					// Обрабатываем команду.
 					ProcessCommand(user.Context.Server, chatId, e.Message.Text);
@@ -80,26 +86,6 @@ namespace LersBot
 			}
 		}
 
-		private void ConnectToServer(UserName user)
-		{
-			if (user.Context.Server == null || !user.Context.Server.IsConnected)
-			{
-				user.Context.Server = Connect(user);
-			}
-		}
-
-		private static LersServer Connect(UserName user)
-		{
-			var server = new LersServer();
-
-			var auth = new Lers.Networking.BasicAuthenticationInfo(user.LersUser, Lers.Networking.SecureStringHelper.ConvertToSecureString(user.LersPassword));
-
-			server.VersionMismatch += (sender, e) => e.Ignore = true;
-
-			server.Connect(Config.Instance.LersServerAddress, Config.Instance.LersServerPort, auth);
-
-			return server;
-		}
 
 		private void ProcessCommand(LersServer server, long chatId, string text)
 		{

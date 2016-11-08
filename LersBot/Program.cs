@@ -15,11 +15,15 @@ namespace LersBot
 	{
 		private static LersBot bot;
 
+		private static Notifier notifier;
+
 		static void Main(string[] args)
 		{
 			Config.Load();
 
 			bot = new LersBot();
+
+			notifier = new Notifier(bot);
 
 			Console.WriteLine($"Stariting {bot.UserName}");
 
@@ -29,9 +33,13 @@ namespace LersBot
 			bot.AddCommandHandler(ShowMeasurePoints, "/mpts");
 			bot.Start();
 
+			notifier.Start();
+
 			Console.WriteLine("Press any key to exit");
 
 			Console.ReadKey();
+
+			notifier.Stop();
 		}
 
 		private static void ShowStart(LersServer server, long chatId, string[] arguments)
@@ -60,35 +68,28 @@ namespace LersBot
 
 			var autoResetEvent = new System.Threading.AutoResetEvent(false);
 
-			var notifyToken = server.AddNotification((int)Lers.Interop.Operation.SAVE_CURRENT_DATA,
-				(int)Lers.Interop.EntityType.PollSession, pollSessionId, true,
-				(notifyData, userState) =>
+			MeasurePointData.CurrentsSaved += (sender, e) =>
+			{
+				try
 				{
-					try
-					{
-						var param = (Lers.Interop.CurrentConsumptionDataReadNotifyParams)Lers.Serialization.SerializationHelper.FromPropertyBag(notifyData);
+					SendCurrents(chatId, e.Consumption);
 
-						if (measurePoint != null)
-						{
-							MeasurePointConsumptionRecord record = MeasurePointData.__ConvertToMeasurePointCurrentConsumptionRecord(param.Consumption, measurePoint.ResourceKind);
+					autoResetEvent.Set();
+				}
+				catch (Exception exc)
+				{
+					bot.SendText(chatId, exc.Message);
+				}
+			};
 
-							SendCurrents(chatId, record);
-						}
-
-						autoResetEvent.Set();
-					}
-					catch (Exception exc)
-					{
-						bot.SendText(chatId, exc.Message);
-					}
-				}, null);
+			MeasurePointData.SubscribeSaveCurrents(server, pollSessionId);
 
 			if (!autoResetEvent.WaitOne(120000))
 			{
 				bot.SendText(chatId, "Не удалось получить текущие данные за 2 минуты.");
 			}
 
-			server.RemoveNotification(notifyToken);
+			MeasurePointData.UnsubscribeSaveCurrents(server);
 		}
 
 		private static void SendCurrents(long chatId, MeasurePointConsumptionRecord record)
