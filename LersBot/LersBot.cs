@@ -15,7 +15,7 @@ namespace LersBot
 	{
 		private Telegram.Bot.TelegramBotClient bot;
 
-		private Dictionary<string, Action<LersServer, long, string[]>> commandHandlers = new Dictionary<string, Action<LersServer, long, string[]>>();
+		private Dictionary<string, Action<UserName, string[]>> commandHandlers = new Dictionary<string, Action<UserName, string[]>>();
 
 		public string UserName
 		{
@@ -73,7 +73,7 @@ namespace LersBot
 					user.Connect();
 
 					// Обрабатываем команду.
-					ProcessCommand(user.Context.Server, chatId, e.Message.Text);
+					ProcessCommand(user, e.Message.Text);
 				}
 			}
 			catch (Exception exc)
@@ -87,7 +87,7 @@ namespace LersBot
 		}
 
 
-		private void ProcessCommand(LersServer server, long chatId, string text)
+		private void ProcessCommand(UserName user, string text)
 		{
 			string[] commandFields = Regex.Split(text, @"\s");
 
@@ -102,15 +102,15 @@ namespace LersBot
 
 			Array.Copy(commandFields, 1, arguments, 0, arguments.Length);
 
-			Action<LersServer, long, string[]> handler;
+			Action<UserName, string[]> handler;
 
 			if (this.commandHandlers.TryGetValue(commandFields[0], out handler))
 			{
-				handler(server, chatId, arguments);
+				handler(user, arguments);
 			}
 			else
 			{
-				bot.SendTextMessageAsync(chatId, "Неизвестная команда");
+				SendText(user.Context.ChatId, "Неизвестная команда");
 			}
 		}
 
@@ -119,7 +119,7 @@ namespace LersBot
 			this.bot.SendTextMessageAsync(chatId, message).Wait();
 		}
 
-		public void AddCommandHandler(Action<LersServer, long, string[]> handler, params string[] commandNames)
+		public void AddCommandHandler(Action<UserName, string[]> handler, params string[] commandNames)
 		{
 			foreach (string cmd in commandNames)
 				this.commandHandlers[cmd] = handler;

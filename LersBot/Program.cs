@@ -31,6 +31,7 @@ namespace LersBot
 			bot.AddCommandHandler(ShowCurrents, "/getcurrents");
 			bot.AddCommandHandler(ShowNodes, "/nodes");
 			bot.AddCommandHandler(ShowMeasurePoints, "/mpts");
+			bot.AddCommandHandler(notifier.ProcessSetNotify, "/setnotify");
 			bot.Start();
 
 			notifier.Start();
@@ -42,14 +43,17 @@ namespace LersBot
 			notifier.Stop();
 		}
 
-		private static void ShowStart(LersServer server, long chatId, string[] arguments)
+		private static void ShowStart(UserName user, string[] arguments)
 		{
-			bot.SendText(chatId, $"Добро пожаловать, {server.Accounts.Current.DisplayName}");
+			bot.SendText(user.Context.ChatId, $"Добро пожаловать, {user.Context.Server.Accounts.Current.DisplayName}");
 		}
 
 
-		private static void ShowCurrents(LersServer server, long chatId, string[] arguments)
+		private static void ShowCurrents(UserName user, string[] arguments)
 		{
+			LersServer server = user.Context.Server;
+			long chatId = user.Context.ChatId;
+
 			var measurePoint = server.GetMeasurePoints(arguments).FirstOrDefault();
 
 			if (measurePoint == null)
@@ -138,9 +142,11 @@ namespace LersBot
 			bot.SendText(chatId, System.Web.HttpUtility.HtmlEncode(sb.ToString()));
 		}
 
-		private static void ShowNodes(LersServer server, long chatId, string[] arguments)
+		private static void ShowNodes(UserName user, string[] arguments)
 		{
-			var nodes = server.GetNodes(arguments);
+			var nodes = user.Context.Server.GetNodes(arguments);
+
+			long chatId = user.Context.ChatId;
 
 			if (!nodes.Any())
 			{
@@ -165,9 +171,11 @@ namespace LersBot
 		}
 
 
-		private static void ShowMeasurePoints(LersServer server, long chatId, string[] arguments)
+		private static void ShowMeasurePoints(UserName user, string[] arguments)
 		{
-			var measurePoints = server.GetMeasurePoints(arguments);
+			var measurePoints = user.Context.Server.GetMeasurePoints(arguments);
+
+			long chatId = user.Context.ChatId;
 
 			if (!measurePoints.Any())
 			{
