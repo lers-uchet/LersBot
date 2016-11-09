@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Lers.Administration;
 
 namespace LersBot
 {
@@ -62,6 +63,11 @@ namespace LersBot
 
 		private void CheckUserNotifications(UserName user)
 		{
+			if (!AccountReceivesNotificationsNow(user.Context.Server.Accounts.Current))
+			{
+				return;
+			}
+
 			var notifications = user.Context.Server.Notifications.GetList().OrderBy(x => x.Id);
 
 			if (!notifications.Any())
@@ -113,6 +119,15 @@ namespace LersBot
 
 			user.Context.LastNotificationId = lastNotify.Id;
 			user.Context.LastNotificationDate = lastNotify.DateTime;
+		}
+
+		private static bool AccountReceivesNotificationsNow(Account current)
+		{
+			DateTime dtNow = DateTime.Now;
+
+			int nowTime = dtNow.Hour * 60 + dtNow.Minute;
+
+			return current.NotifyStartTime >= nowTime && current.NotifyEndTime <= nowTime;
 		}
 
 		internal void Start()
