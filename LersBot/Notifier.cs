@@ -77,7 +77,25 @@ namespace LersBot
 				{
 					if (notification.Id > user.Context.LastNotificationId)
 					{
-						string text = notification.Message;
+						string text = "";
+
+						switch (notification.Type)
+						{
+							case Lers.NotificationType.CriticalError:
+								text += "🚫 ";
+								break;
+
+							case Lers.NotificationType.Incident:
+							case Lers.NotificationType.EquipmentCalibrationRequired:
+								text += "⚠️ ";
+								break;
+
+							default:
+								text += "ℹ️ ";
+								break;
+						}
+
+						text += notification.Message;
 
 						if (!string.IsNullOrEmpty(notification.Url))
 						{
