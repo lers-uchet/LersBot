@@ -60,6 +60,7 @@
   <ItemGroup>
     <Compile Include="Config.cs" />
     <Compile Include="LersBot.cs" />
+    <Compile Include="Logger.cs" />
     <Compile Include="Notifier.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

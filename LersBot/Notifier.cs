@@ -54,14 +54,14 @@ namespace LersBot
 				}
 				catch (Exception exc)
 				{
-					Console.WriteLine(exc.Message);
+					Logger.LogError(exc.Message);
 				}
 			}
 
 			Config.SaveContexts();
 		}
 
-		private void CheckUserNotifications(UserName user)
+		private void CheckUserNotifications(User user)
 		{
 			if (!AccountReceivesNotificationsNow(user.Context.Server.Accounts.Current))
 			{
@@ -140,7 +140,7 @@ namespace LersBot
 			this.stopEvent.Set();
 		}
 
-		internal void ProcessSetNotify(UserName user, string[] arguments)
+		internal void ProcessSetNotify(User user, string[] arguments)
 		{
 			if (arguments.Length == 0 || arguments[0].ToLower() == "on")
 			{

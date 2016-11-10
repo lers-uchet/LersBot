@@ -15,7 +15,7 @@ namespace LersBot
 	{
 		private Telegram.Bot.TelegramBotClient bot;
 
-		private Dictionary<string, Action<UserName, string[]>> commandHandlers = new Dictionary<string, Action<UserName, string[]>>();
+		private Dictionary<string, Action<User, string[]>> commandHandlers = new Dictionary<string, Action<User, string[]>>();
 
 		public string UserName
 		{
@@ -38,7 +38,7 @@ namespace LersBot
 		internal void Start()
 		{
 			// Инициируем подключения к серверу
-			foreach (UserName user in Config.Instance.Users)
+			foreach (User user in Config.Instance.Users)
 			{
 				user.Connect();
 			}
@@ -54,7 +54,7 @@ namespace LersBot
 
 			try
 			{
-				UserName user = Config.Instance.Users.Where(u => u.TelegramUser == e.Message.From.Username || u.TelegramUser == "<anonymous>").FirstOrDefault();
+				User user = Config.Instance.Users.Where(u => u.TelegramUser == e.Message.From.Username || u.TelegramUser == "<anonymous>").FirstOrDefault();
 
 				if (user == null)
 				{
@@ -82,12 +82,12 @@ namespace LersBot
 
 				bot.SendTextMessageAsync(chatId, message);
 
-				Console.WriteLine(message);
+				Logger.LogError(message);
 			}
 		}
 
 
-		private void ProcessCommand(UserName user, string text)
+		private void ProcessCommand(User user, string text)
 		{
 			string[] commandFields = Regex.Split(text, @"\s");
 
@@ -102,7 +102,7 @@ namespace LersBot
 
 			Array.Copy(commandFields, 1, arguments, 0, arguments.Length);
 
-			Action<UserName, string[]> handler;
+			Action<User, string[]> handler;
 
 			if (this.commandHandlers.TryGetValue(commandFields[0], out handler))
 			{
@@ -119,7 +119,7 @@ namespace LersBot
 			this.bot.SendTextMessageAsync(chatId, message).Wait();
 		}
 
-		public void AddCommandHandler(Action<UserName, string[]> handler, params string[] commandNames)
+		public void AddCommandHandler(Action<User, string[]> handler, params string[] commandNames)
 		{
 			foreach (string cmd in commandNames)
 				this.commandHandlers[cmd] = handler;

@@ -8,17 +8,28 @@ using Newtonsoft.Json;
 
 namespace LersBot
 {
+	/// <summary>
+	/// Параметры конфигурации бота.
+	/// </summary>
 	class Config
 	{
-		private const string ContextPath = "users.json";
+		public static string ContextFilePath = Environment.ExpandEnvironmentVariables(@"%LOCALAPPDATA%\LERS\LersBot\users.json");
+
+		public static string LogFilePath = Environment.ExpandEnvironmentVariables(@"%ALLUSERSPROFILE%\LERS\LersBot\bot.log");
+
+		public static string BotConfigFilePath = "bot.config";
+
 
 		public static Config Instance { get; private set; }
 
 		public static void Load()
 		{
-			string configText = File.ReadAllText("bot.config");
+			string configText = File.ReadAllText(BotConfigFilePath);
 
 			Instance = JsonConvert.DeserializeObject<Config>(configText);
+
+			// Создаём папку с контекстами, если её ещё нет.
+			Directory.CreateDirectory(Path.GetDirectoryName(ContextFilePath));
 
 			// Загрузим контексты
 			Instance.LoadContexts();
@@ -28,16 +39,16 @@ namespace LersBot
 		{
 			Contexts = new List<UserContext>();
 
-			if (File.Exists(ContextPath))
+			if (File.Exists(ContextFilePath))
 			{
-				string contextContent = File.ReadAllText(ContextPath);
+				string contextContent = File.ReadAllText(ContextFilePath);
 
 				var obj = JsonConvert.DeserializeObject<List<UserContext>>(contextContent);
 
 				Contexts.AddRange(obj);
 			}
 
-			foreach (UserName user in Instance.Users)
+			foreach (User user in Instance.Users)
 			{
 				var userCtxt = Contexts.Where(x => x.UserName == user.TelegramUser).FirstOrDefault();
 
@@ -58,13 +69,13 @@ namespace LersBot
 			{
 				string contextText = JsonConvert.SerializeObject(Instance.Contexts);
 
-				File.WriteAllText(ContextPath, contextText);
+				File.WriteAllText(ContextFilePath, contextText);
 			}
 		}
 
 		public string Token { get; set; }
 
-		public IList<UserName> Users { get; set; }
+		public IList<User> Users { get; set; }
 
 		private List<UserContext> Contexts;
 
@@ -73,7 +84,8 @@ namespace LersBot
 		public ushort LersServerPort { get; set; }
 	}
 
-	class UserName
+
+	class User
 	{
 		public string TelegramUser { get; set; }
 

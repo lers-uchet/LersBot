@@ -21,17 +21,20 @@ namespace LersBot
 		{
 			Config.Load();
 
+			Logger.Initialize(Config.LogFilePath);
+
 			bot = new LersBot();
 
 			notifier = new Notifier(bot);
 
-			Console.WriteLine($"Stariting {bot.UserName}");
+			Logger.LogMessage($"Stariting {bot.UserName}");
 
 			bot.AddCommandHandler(ShowStart, "/start");
 			bot.AddCommandHandler(ShowCurrents, "/getcurrents");
 			bot.AddCommandHandler(ShowNodes, "/nodes");
 			bot.AddCommandHandler(ShowMeasurePoints, "/mpts");
 			bot.AddCommandHandler(notifier.ProcessSetNotify, "/setnotify");
+
 			bot.Start();
 
 			notifier.Start();
@@ -41,15 +44,17 @@ namespace LersBot
 			Console.ReadKey();
 
 			notifier.Stop();
+
+			Logger.LogMessage($"Stopped {bot.UserName}");
 		}
 
-		private static void ShowStart(UserName user, string[] arguments)
+
+		private static void ShowStart(User user, string[] arguments)
 		{
 			bot.SendText(user.Context.ChatId, $"Добро пожаловать, {user.Context.Server.Accounts.Current.DisplayName}");
 		}
 
-
-		private static void ShowCurrents(UserName user, string[] arguments)
+		private static void ShowCurrents(User user, string[] arguments)
 		{
 			LersServer server = user.Context.Server;
 			long chatId = user.Context.ChatId;
@@ -142,7 +147,7 @@ namespace LersBot
 			bot.SendText(chatId, System.Web.HttpUtility.HtmlEncode(sb.ToString()));
 		}
 
-		private static void ShowNodes(UserName user, string[] arguments)
+		private static void ShowNodes(User user, string[] arguments)
 		{
 			var nodes = user.Context.Server.GetNodes(arguments);
 
@@ -165,13 +170,12 @@ namespace LersBot
 			{
 				foreach (var e in ae.InnerExceptions)
 				{
-					Console.WriteLine(e.Message);
+					Logger.LogError(e.Message);
 				}
 			}
 		}
 
-
-		private static void ShowMeasurePoints(UserName user, string[] arguments)
+		private static void ShowMeasurePoints(User user, string[] arguments)
 		{
 			var measurePoints = user.Context.Server.GetMeasurePoints(arguments);
 
@@ -194,10 +198,9 @@ namespace LersBot
 			{
 				foreach (var e in ae.InnerExceptions)
 				{
-					Console.WriteLine(e.Message);
+					Logger.LogError(e.Message);
 				}
 			}
 		}
 	}
 }
-
