@@ -45,6 +45,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceProcess" />
     <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -60,6 +61,12 @@
   <ItemGroup>
     <Compile Include="Config.cs" />
     <Compile Include="LersBot.cs" />
+    <Compile Include="LersBotService.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="LersBotService.Designer.cs">
+      <DependentUpon>LersBotService.cs</DependentUpon>
+    </Compile>
     <Compile Include="Logger.cs" />
     <Compile Include="Notifier.cs" />
     <Compile Include="Program.cs" />

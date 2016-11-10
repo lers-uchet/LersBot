@@ -9,6 +9,9 @@ using Lers.Administration;
 
 namespace LersBot
 {
+	/// <summary>
+	/// Класс, отправляющий уведомления клиентам.
+	/// </summary>
 	class Notifier
 	{
 		private LersBot bot;
