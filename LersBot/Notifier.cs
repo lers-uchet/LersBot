@@ -127,7 +127,7 @@ namespace LersBot
 
 			int nowTime = dtNow.Hour * 60 + dtNow.Minute;
 
-			return nowTime >- current.NotifyStartTime && nowTime <= current.NotifyEndTime;
+			return nowTime >= current.NotifyStartTime && nowTime <= current.NotifyEndTime;
 		}
 
 		internal void Start()
