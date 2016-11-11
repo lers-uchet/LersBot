@@ -15,14 +15,20 @@ namespace LersBot
 
 		public static string LogFilePath = Environment.ExpandEnvironmentVariables(@"%ALLUSERSPROFILE%\LERS\LersBot\bot.log");
 
-		public static string BotConfigFilePath = "bot.config";
+		private static string BotConfigFileName = "bot.config";
 
 
 		public static Config Instance { get; private set; }
 
 		public static void Load()
 		{
-			string configText = File.ReadAllText(BotConfigFilePath);
+			var uri = new UriBuilder(System.Reflection.Assembly.GetExecutingAssembly().CodeBase);
+
+			string botConfigPath = Path.GetDirectoryName(Uri.UnescapeDataString(uri.Path));
+
+			botConfigPath = Path.Combine(botConfigPath, BotConfigFileName);
+
+			string configText = File.ReadAllText(botConfigPath);
 
 			Instance = JsonConvert.DeserializeObject<Config>(configText);
 
