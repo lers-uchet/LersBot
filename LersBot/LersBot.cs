@@ -35,7 +35,7 @@ namespace LersBot
 		internal void Start()
 		{
 			// Инициируем подключения к серверу
-			foreach (User user in Config.Instance.Users)
+			foreach (User user in User.List.Where(x => x.Context != null))
 			{
 				user.Connect();
 			}
@@ -51,27 +51,28 @@ namespace LersBot
 
 			try
 			{
-				User user = Config.Instance.Users.Where(u => u.TelegramUser == e.Message.From.Username || u.TelegramUser == "<anonymous>").FirstOrDefault();
+				User user = User.List.Where(u => u.TelegramUser == e.Message.From.Username).FirstOrDefault();
 
 				if (user == null)
 				{
-					bot.SendTextMessageAsync(chatId, "Извините, я вас не знаю.");
-				}
-				else
-				{
-					if (user.Context.ChatId != chatId)
+					user = new User
 					{
-						user.Context.ChatId = chatId;
+						ChatId = chatId,
+						TelegramUser = e.Message.From.Username
+					};
 
-						Config.SaveContexts();
-					}
+					User.List.Add(user);
 
+					User.Save();
+				}
+				else if (user.Context != null)
+				{
 					// Подключаемся к серверу.
 					user.Connect();
-
-					// Обрабатываем команду.
-					ProcessCommand(user, e.Message.Text);
 				}
+
+				// Обрабатываем команду.
+				ProcessCommand(user, e.Message.Text);
 			}
 			catch (Exception exc)
 			{
@@ -95,19 +96,35 @@ namespace LersBot
 
 			// Получим аргументы запроса
 
-			string[] arguments = new string[commandFields.Length - 1];
+			string command;
+			string[] arguments;
 
-			Array.Copy(commandFields, 1, arguments, 0, arguments.Length);
 
 			Action<User, string[]> handler;
 
-			if (this.commandHandlers.TryGetValue(commandFields[0], out handler))
+			// Пользователь может уже обрабатывать команду. В этом случае передадим в качестве
+			// текста команды выполняющуся команду, а в качестве аргументов весь текст сообщения.
+
+			if (user.CommandContext != null)
+			{
+				command = user.CommandContext.Text;
+				arguments = new string[] { text };
+			}
+			else
+			{
+				command = commandFields.FirstOrDefault();
+				arguments = new string[commandFields.Length - 1];
+				Array.Copy(commandFields, 1, arguments, 0, arguments.Length);
+			}
+
+
+			if (this.commandHandlers.TryGetValue(command, out handler))
 			{
 				handler(user, arguments);
 			}
 			else
 			{
-				SendText(user.Context.ChatId, "Неизвестная команда");
+				SendText(user.ChatId, "Неизвестная команда");
 			}
 		}
 

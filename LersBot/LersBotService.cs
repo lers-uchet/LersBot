@@ -22,6 +22,12 @@ namespace LersBot
 
 		private Notifier notifier;
 
+		private const string StartCommand = "/start";
+		private const string GetCurrentsCommand = "/getcurrents";
+		private const string GetNodesCommand = "/nodes";
+		private const string GetMeasurePointsCommand = "/mpts";
+		public const string SetNotifyCommand = "/setnotify";
+
 
 		public LersBotService()
 		{
@@ -41,6 +47,7 @@ namespace LersBot
 		protected override void OnStart(string[] args)
 		{
 			Config.Load();
+			User.LoadList();
 
 			Logger.Initialize(Config.LogFilePath);
 
@@ -50,11 +57,11 @@ namespace LersBot
 
 			Logger.LogMessage($"Stariting {bot.UserName}");
 
-			bot.AddCommandHandler(ShowStart, "/start");
-			bot.AddCommandHandler(ShowCurrents, "/getcurrents");
-			bot.AddCommandHandler(ShowNodes, "/nodes");
-			bot.AddCommandHandler(ShowMeasurePoints, "/mpts");
-			bot.AddCommandHandler(notifier.ProcessSetNotify, "/setnotify");
+			bot.AddCommandHandler(HandleStart, StartCommand);
+			bot.AddCommandHandler(ShowCurrents, GetCurrentsCommand);
+			bot.AddCommandHandler(ShowNodes, GetNodesCommand);
+			bot.AddCommandHandler(ShowMeasurePoints, GetMeasurePointsCommand);
+			bot.AddCommandHandler(notifier.ProcessSetNotify, SetNotifyCommand);
 
 			bot.Start();
 
@@ -69,15 +76,64 @@ namespace LersBot
 		}
 
 
-		private void ShowStart(User user, string[] arguments)
+		private void HandleStart(User user, string[] arguments)
 		{
-			bot.SendText(user.Context.ChatId, $"Добро пожаловать, {user.Context.Server.Accounts.Current.DisplayName}");
+			if (user.CommandContext == null)
+			{
+				// Начинаем выполнять команду.
+
+				user.CommandContext = new StartCommandContext("/start");
+
+				bot.SendText(user.ChatId, "Введите логин на сервере ЛЭРС УЧЁТ.");
+			}
+			else
+			{
+				// Команда уже выполняется.
+
+				var context = (StartCommandContext)user.CommandContext;
+
+				if (string.IsNullOrEmpty(context.Login))
+				{
+					context.Login = arguments[0];
+
+					bot.SendText(user.ChatId, "Введите пароль на сервере ЛЭРС УЧЁТ");
+				}
+				else if (string.IsNullOrEmpty(context.Password))
+				{
+					context.Password = arguments[0];
+
+					// Очищаем контекст команды
+
+					user.CommandContext = null;
+
+					user.Context = new LersContext
+					{
+						LersUser = context.Login,
+						LersPassword = context.Password
+					};
+
+					try
+					{
+						user.Connect();
+
+						bot.SendText(user.ChatId, $"Добро пожаловать,  {user.Context.Server.Accounts.Current.DisplayName}");
+					}
+					catch
+					{
+						user.Context = null;
+						throw;
+					}
+				}
+			}
 		}
 
 		private void ShowCurrents(User user, string[] arguments)
 		{
+			if (user.Context == null)
+				throw new UnauthorizedCommandException(GetCurrentsCommand);
+
 			LersServer server = user.Context.Server;
-			long chatId = user.Context.ChatId;
+			long chatId = user.ChatId;
 
 			var measurePoint = server.GetMeasurePoints(arguments).FirstOrDefault();
 
@@ -169,9 +225,12 @@ namespace LersBot
 
 		private void ShowNodes(User user, string[] arguments)
 		{
+			if (user.Context == null)
+				throw new UnauthorizedCommandException(GetNodesCommand);
+
 			var nodes = user.Context.Server.GetNodes(arguments);
 
-			long chatId = user.Context.ChatId;
+			long chatId = user.ChatId;
 
 			if (!nodes.Any())
 			{
@@ -197,9 +256,12 @@ namespace LersBot
 
 		private void ShowMeasurePoints(User user, string[] arguments)
 		{
+			if (user.Context == null)
+				throw new UnauthorizedCommandException(GetMeasurePointsCommand);
+
 			var measurePoints = user.Context.Server.GetMeasurePoints(arguments);
 
-			long chatId = user.Context.ChatId;
+			long chatId = user.ChatId;
 
 			if (!measurePoints.Any())
 			{

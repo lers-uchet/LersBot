@@ -38,11 +38,11 @@ namespace LersBot
 		{
 			// Проходим по всем зарегистрированным пользователям.
 
-			foreach (var user in Config.Instance.Users)
+			foreach (var user in User.List.Where(x => x.Context != null))
 			{
 				try
 				{
-					if (!user.Context.SendNotifications || user.Context.ChatId == 0)
+					if (!user.Context.SendNotifications)
 					{
 						// Пользователь ещё не начал чат с ботом или отключил уведомления.
 						continue;
@@ -58,7 +58,7 @@ namespace LersBot
 				}
 			}
 
-			Config.SaveContexts();
+			User.Save();
 		}
 
 		private void CheckUserNotifications(User user)
@@ -111,7 +111,7 @@ namespace LersBot
 						text += $"\r\n{notification.Url}";
 					}
 
-					bot.SendText(user.Context.ChatId, text);
+					bot.SendText(user.ChatId, text);
 				}
 			}
 
@@ -145,24 +145,27 @@ namespace LersBot
 
 		internal void ProcessSetNotify(User user, string[] arguments)
 		{
+			if (user.Context == null)
+				throw new UnauthorizedCommandException(LersBotService.SetNotifyCommand);
+
 			if (arguments.Length == 0 || arguments[0].ToLower() == "on")
 			{
 				user.Context.SendNotifications = true;
 
-				bot.SendText(user.Context.ChatId, "Отправка уведомлений включена.");
+				bot.SendText(user.ChatId, "Отправка уведомлений включена.");
 			}
 			else if (arguments[0] == "off")
 			{
 				user.Context.SendNotifications = false;
 
-				bot.SendText(user.Context.ChatId, "Отправка уведомлений отключена.");
+				bot.SendText(user.ChatId, "Отправка уведомлений отключена.");
 			}
 			else
 			{
-				bot.SendText(user.Context.ChatId, "Неверные параметры команды.");
+				bot.SendText(user.ChatId, "Неверные параметры команды.");
 			}
 
-			Config.SaveContexts();
+			User.Save();
 		}
 	}
 }
