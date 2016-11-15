@@ -35,7 +35,8 @@ namespace LersBot
 		internal void Start()
 		{
 			// Инициируем подключения к серверу
-			foreach (User user in User.List.Where(x => x.Context != null))
+
+			foreach (User user in User.Where(x => x.Context != null))
 			{
 				user.Connect();
 			}
@@ -51,19 +52,17 @@ namespace LersBot
 
 			try
 			{
-				User user = User.List.Where(u => u.TelegramUser == e.Message.From.Username).FirstOrDefault();
+				User user = User.Where(u => u.TelegramUserId == e.Message.From.Id).FirstOrDefault();
 
 				if (user == null)
 				{
 					user = new User
 					{
 						ChatId = chatId,
-						TelegramUser = e.Message.From.Username
+						TelegramUserId = e.Message.From.Id
 					};
 
-					User.List.Add(user);
-
-					User.Save();
+					User.Add(user);
 				}
 				else if (user.Context != null)
 				{

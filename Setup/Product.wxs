@@ -38,7 +38,8 @@
 												Description="Служба предоставляет доступ к серверу ЛЭРС УЧЁТ посредством бота мессенджера Telegram."
 												Start="auto"
 												Account="LocalSystem"
-												ErrorControl="ignore">
+												ErrorControl="ignore"
+												Arguments="/service">
 				</ServiceInstall>
 
 				<ServiceControl Id="BotServiceStart"  Stop="both" Remove="uninstall" Name="LersBotService"></ServiceControl>

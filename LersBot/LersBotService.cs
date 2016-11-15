@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
-using System.Diagnostics;
 using System.Linq;
 using System.ServiceProcess;
 using System.Text;
-using System.Threading.Tasks;
 using Lers;
 using Lers.Core;
 using Lers.Data;
@@ -76,13 +73,18 @@ namespace LersBot
 		}
 
 
+		/// <summary>
+		/// Обрабатывает команду начала сеанса работы пользователя с ботом.
+		/// </summary>
+		/// <param name="user"></param>
+		/// <param name="arguments"></param>
 		private void HandleStart(User user, string[] arguments)
 		{
 			if (user.CommandContext == null)
 			{
-				// Начинаем выполнять команду.
+				// Начато выполнение команды. Создаём контекст команды и запрашиваем логин на сервере.
 
-				user.CommandContext = new StartCommandContext("/start");
+				user.CommandContext = new StartCommandContext(StartCommand);
 
 				bot.SendText(user.ChatId, "Введите логин на сервере ЛЭРС УЧЁТ.");
 			}
@@ -94,26 +96,32 @@ namespace LersBot
 
 				if (string.IsNullOrEmpty(context.Login))
 				{
+					// Логин ещё пустой, значит его передал пользователь. Сохраняем и запрашиваем пароль.
+
 					context.Login = arguments[0];
 
 					bot.SendText(user.ChatId, "Введите пароль на сервере ЛЭРС УЧЁТ");
 				}
 				else if (string.IsNullOrEmpty(context.Password))
 				{
-					context.Password = arguments[0];
+					// Если пароля ещё нет, значит он был передан сейчас. Сохраняем пароль и очищаем контекст команды.
 
-					// Очищаем контекст команды
+					context.Password = arguments[0];
 
 					user.CommandContext = null;
 
+					// Создаём контекст пользователя ЛЭРС УЧЁТ.
+
 					user.Context = new LersContext
 					{
-						LersUser = context.Login,
-						LersPassword = context.Password
+						Login = context.Login,
+						Password = context.Password
 					};
 
 					try
 					{
+						// Проверяем подключение и выводим приветствие.
+
 						user.Connect();
 
 						bot.SendText(user.ChatId, $"Добро пожаловать,  {user.Context.Server.Accounts.Current.DisplayName}");

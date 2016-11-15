@@ -1,17 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json;
 
 namespace LersBot
 {
+	/// <summary>
+	/// Пользователь бота.
+	/// </summary>
 	class User
 	{
 		/// <summary>
 		/// Список зарегистрированных пользователей.
 		/// </summary>
-		internal static List<User> List;
+		private static List<User> List;
 
+		/// <summary>
+		/// Загружает из файла список зарегистрированных пользователей.
+		/// </summary>
 		internal static void LoadList()
 		{
 			// Создаём папку с контекстами, если её ещё нет.
@@ -29,6 +36,32 @@ namespace LersBot
 			}
 		}
 
+		/// <summary>
+		/// Добавляет нового пользователя.
+		/// </summary>
+		/// <param name="user"></param>
+		internal static void Add(User user)
+		{
+			lock (List)
+			{
+				List.Add(user);
+
+				Save();
+			}
+		}
+
+		internal static IEnumerable<User> Where(Func<User, bool> predicate)
+		{
+			lock (List)
+			{
+				return List.Where(predicate).ToList();
+			}
+		}
+
+
+		/// <summary>
+		/// Сохраняет в файл список зарегисрированных пользователей.
+		/// </summary>
 		public static void Save()
 		{
 			lock (List)
@@ -39,15 +72,33 @@ namespace LersBot
 			}
 		}
 
-		public string TelegramUser { get; set; }
+		/// <summary>
+		/// Идентификатор пользователя Telegram.
+		/// </summary>
+		public long TelegramUserId { get; set; }
 
+		/// <summary>
+		/// Идентификатор чата для отправки сообщений пользователю.
+		/// </summary>
 		public long ChatId { get; set; }
 
+
+		/// <summary>
+		/// Контекст сервера ЛЭРС УЧЁТ.
+		/// </summary>
 		public LersContext Context;
 
+
+		/// <summary>
+		/// Контекст выполняемой команды.
+		/// </summary>
 		internal CommandContext CommandContext { get; set; }
 
 
+
+		/// <summary>
+		/// Устанавливает подключение к серверу ЛЭРС УЧЁТ.
+		/// </summary>
 		public void Connect()
 		{
 			if (this.Context.Server == null)
@@ -57,8 +108,8 @@ namespace LersBot
 
 			if (!this.Context.Server.IsConnected)
 			{
-				var auth = new Lers.Networking.BasicAuthenticationInfo(this.Context.LersUser,
-					Lers.Networking.SecureStringHelper.ConvertToSecureString(this.Context.LersPassword));
+				var auth = new Lers.Networking.BasicAuthenticationInfo(this.Context.Login,
+					Lers.Networking.SecureStringHelper.ConvertToSecureString(this.Context.Password));
 
 				this.Context.Server.VersionMismatch += (sender, e) => e.Ignore = true;
 
@@ -67,11 +118,21 @@ namespace LersBot
 		}
 	}
 
+
+	/// <summary>
+	/// Контекст пользователя ЛЭРС УЧЁТ, связываемый с пользователем Telegram.
+	/// </summary>
 	class LersContext
 	{
-		public string LersUser { get; set; }
+		/// <summary>
+		/// Имя пользователя ЛЭРС УЧЁТ.
+		/// </summary>
+		public string Login { get; set; }
 
-		public string LersPassword { get; set; }
+		/// <summary>
+		/// Пароль на сервере ЛЭРС УЧЁТ.
+		/// </summary>
+		public string Password { get; set; }
 
 		/// <summary>
 		/// Подключение к серверу ЛЭРС УЧЁТ, связанное с пользователем.

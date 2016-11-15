@@ -38,7 +38,7 @@ namespace LersBot
 		{
 			// Проходим по всем зарегистрированным пользователям.
 
-			foreach (var user in User.List.Where(x => x.Context != null))
+			foreach (var user in User.Where(x => x.Context != null))
 			{
 				try
 				{
