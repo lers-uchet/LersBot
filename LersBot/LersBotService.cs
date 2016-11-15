@@ -41,30 +41,46 @@ namespace LersBot
 			OnStop();
 		}
 
+
+		/// <summary>
+		/// Вызывается при запуске службы.
+		/// </summary>
+		/// <param name="args"></param>
 		protected override void OnStart(string[] args)
 		{
-			Config.Load();
-			User.LoadList();
+			try
+			{
+				Config.Load();
+				User.LoadList();
 
-			Logger.Initialize(Config.LogFilePath);
+				Logger.Initialize(Config.LogFilePath);
 
-			bot = new LersBot();
+				bot = new LersBot();
 
-			notifier = new Notifier(bot);
+				notifier = new Notifier(bot);
 
-			Logger.LogMessage($"Stariting {bot.UserName}");
+				Logger.LogMessage($"Stariting {bot.UserName}");
 
-			bot.AddCommandHandler(HandleStart, StartCommand);
-			bot.AddCommandHandler(ShowCurrents, GetCurrentsCommand);
-			bot.AddCommandHandler(ShowNodes, GetNodesCommand);
-			bot.AddCommandHandler(ShowMeasurePoints, GetMeasurePointsCommand);
-			bot.AddCommandHandler(notifier.ProcessSetNotify, SetNotifyCommand);
+				bot.AddCommandHandler(HandleStart, StartCommand);
+				bot.AddCommandHandler(ShowCurrents, GetCurrentsCommand);
+				bot.AddCommandHandler(ShowNodes, GetNodesCommand);
+				bot.AddCommandHandler(ShowMeasurePoints, GetMeasurePointsCommand);
+				bot.AddCommandHandler(notifier.ProcessSetNotify, SetNotifyCommand);
 
-			bot.Start();
+				bot.Start();
 
-			notifier.Start();
+				notifier.Start();
+			}
+			catch (Exception exc)
+			{
+				Logger.LogMessage($"Ошибка запуска бота. {exc.ToString()}");
+				throw;
+			}
 		}
 
+		/// <summary>
+		/// Вызывается при остановке службы.
+		/// </summary>
 		protected override void OnStop()
 		{
 			notifier.Stop();

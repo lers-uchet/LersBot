@@ -7,17 +7,18 @@ namespace LersBot
 	{
 		static void Main(string[] args)
 		{
-			bool runAsService = false;
+			bool runAsService = true;
 
 			if (args.Length > 0)
 			{
 				string arg = args[0];
 
-				if (arg.ToLower() == "/service")
+				if (arg.ToLower() == "/console")
 				{
-					runAsService = true;
+					runAsService = false;
 				}
 			}
+
 
 			if (runAsService)
 			{
