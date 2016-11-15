@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-	<Product Id="{980FE93D-E0F8-4292-8CA0-B427F805104B}" Name="LersBot" Language="1049" Codepage="1251" Version="1.0.0.0" Manufacturer="ООО ЛЕРС-МЕНЕДЖЕР" UpgradeCode="8b075aa1-62c7-4024-8112-ac61229d02f7">
+	<Product Id="{980FE93D-E0F8-4292-8CA0-B427F805104B}" Name="ЛЭРС УЧЁТ - Бот Telegram" Language="1049" Codepage="1251" Version="1.0.0.0" Manufacturer="ООО ЛЕРС-МЕНЕДЖЕР" UpgradeCode="8b075aa1-62c7-4024-8112-ac61229d02f7">
 		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" InstallPrivileges="elevated"/>
 
 		<MajorUpgrade DowngradeErrorMessage="Установлена более новая версия бота ЛЭРС УЧЁТ для Telegram."/>
@@ -26,9 +26,11 @@
 		<ComponentGroup Id="BotComponents" Directory="INSTALLFOLDER">
 			<Component Id="BotService" Guid="{6B691B8E-687B-4C04-B8DA-409595AE002B}">
 				<File Id="LersBotExe" Source="..\LersBot\bin\Release\LersBot.exe" KeyPath="yes"></File>
+        <File Id="LersBotExeConfig" Source="..\LersBot\bin\Release\LersBot.exe.config"></File>
 				<File Id="NewtonsoftJsonDll" Source="..\LersBot\bin\Release\Newtonsoft.Json.dll"></File>
 				<File Id="TelgramBotDll" Source="..\LersBot\bin\Release\Telegram.Bot.dll"></File>
-				<File Id="LersBotConfig" Source="..\LersBot\bin\Release\bot.config"></File>
+				<File Id="LersFrameworkDll" Source="..\LersBot\bin\Release\Lers.System.dll"></File>
+        <File Id="LersBotConfig" Source="..\LersBot\bot.config"></File>
 
 				<ServiceInstall Id="BotServiceInstaller"
 												Type="ownProcess"
@@ -38,12 +40,9 @@
 												Description="Служба предоставляет доступ к серверу ЛЭРС УЧЁТ посредством бота мессенджера Telegram."
 												Start="auto"
 												Account="LocalSystem"
-												ErrorControl="ignore"
-												Arguments="/service">
-				</ServiceInstall>
+												ErrorControl="ignore"/>
 
-				<ServiceControl Id="BotServiceStart"  Stop="both" Remove="uninstall" Name="LersBotService"></ServiceControl>
-
+				<ServiceControl Id="BotServiceStart"  Stop="both" Remove="uninstall" Name="LersBotService"/>
 			</Component>
 		</ComponentGroup>
 	</Fragment>
