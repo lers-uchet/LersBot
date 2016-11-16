@@ -11,7 +11,7 @@ namespace LersBot
 	/// </summary>
 	class Config
 	{
-		public static string ContextFilePath = Environment.ExpandEnvironmentVariables(@"%LOCALAPPDATA%\LERS\LersBot\users.json");
+		public static string UsersFilePath = Environment.ExpandEnvironmentVariables(@"%LOCALAPPDATA%\LERS\LersBot\users.json");
 
 		public static string LogFilePath = Environment.ExpandEnvironmentVariables(@"%ALLUSERSPROFILE%\LERS\LersBot\bot.log");
 

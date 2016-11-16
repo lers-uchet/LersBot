@@ -22,13 +22,14 @@ namespace LersBot
 		internal static void LoadList()
 		{
 			// Создаём папку с контекстами, если её ещё нет.
-			Directory.CreateDirectory(Path.GetDirectoryName(Config.ContextFilePath));
+
+			Directory.CreateDirectory(Path.GetDirectoryName(Config.UsersFilePath));
 
 			List = new List<User>();
 
-			if (File.Exists(Config.ContextFilePath))
+			if (File.Exists(Config.UsersFilePath))
 			{
-				string content = File.ReadAllText(Config.ContextFilePath);
+				string content = File.ReadAllText(Config.UsersFilePath);
 
 				var obj = JsonConvert.DeserializeObject<List<User>>(content);
 
@@ -68,7 +69,7 @@ namespace LersBot
 			{
 				string contextText = JsonConvert.SerializeObject(List);
 
-				File.WriteAllText(Config.ContextFilePath, contextText);
+				File.WriteAllText(Config.UsersFilePath, contextText);
 			}
 		}
 

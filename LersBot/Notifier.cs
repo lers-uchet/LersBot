@@ -77,44 +77,41 @@ namespace LersBot
 
 			// При первом запуске уведомления не рассылаем.
 
-			if (user.Context.LastNotificationId == 0)
+			if (user.Context.LastNotificationId != 0)
 			{
-				return;
-			}
-
-			foreach (var notification in notifications)
-			{
-				if (notification.Id > user.Context.LastNotificationId)
+				foreach (var notification in notifications)
 				{
-					string text = "";
-
-					switch (notification.Type)
+					if (notification.Id > user.Context.LastNotificationId)
 					{
-						case Lers.NotificationType.CriticalError:
-							text += Emoji.StopSign;
-							break;
+						string text = "";
 
-						case Lers.NotificationType.Incident:
-						case Lers.NotificationType.EquipmentCalibrationRequired:
-							text += Emoji.Warning;
-							break;
+						switch (notification.Type)
+						{
+							case Lers.NotificationType.CriticalError:
+								text += Emoji.StopSign;
+								break;
 
-						default:
-							text += Emoji.InformationSource;
-							break;
+							case Lers.NotificationType.Incident:
+							case Lers.NotificationType.EquipmentCalibrationRequired:
+								text += Emoji.Warning;
+								break;
+
+							default:
+								text += Emoji.InformationSource;
+								break;
+						}
+
+						text += " " + notification.Message;
+
+						if (!string.IsNullOrEmpty(notification.Url))
+						{
+							text += $"\r\n{notification.Url}";
+						}
+
+						bot.SendText(user.ChatId, text);
 					}
-
-					text += " " + notification.Message;
-
-					if (!string.IsNullOrEmpty(notification.Url))
-					{
-						text += $"\r\n{notification.Url}";
-					}
-
-					bot.SendText(user.ChatId, text);
 				}
 			}
-
 
 			// Сохраним дату самого нового сообщения
 

@@ -148,6 +148,8 @@ namespace LersBot
 						throw;
 					}
 				}
+
+				User.Save();
 			}
 		}
 
