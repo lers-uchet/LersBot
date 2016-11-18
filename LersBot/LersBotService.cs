@@ -23,7 +23,8 @@ namespace LersBot
 		private const string GetCurrentsCommand = "/getcurrents";
 		private const string GetNodesCommand = "/nodes";
 		private const string GetMeasurePointsCommand = "/mpts";
-		public const string SetNotifyCommand = "/setnotify";
+		public const string SetNotifyOnCommand = "/setnotify_on";
+		public const string SetNotifyOffCommand = "/setnotify_off";
 
 
 		public LersBotService()
@@ -65,7 +66,8 @@ namespace LersBot
 				bot.AddCommandHandler(ShowCurrents, GetCurrentsCommand);
 				bot.AddCommandHandler(ShowNodes, GetNodesCommand);
 				bot.AddCommandHandler(ShowMeasurePoints, GetMeasurePointsCommand);
-				bot.AddCommandHandler(notifier.ProcessSetNotify, SetNotifyCommand);
+				bot.AddCommandHandler(notifier.ProcessSetNotifyOn, SetNotifyOnCommand);
+				bot.AddCommandHandler(notifier.ProcessSetNotifyOff, SetNotifyOffCommand);
 
 				bot.Start();
 

@@ -140,27 +140,26 @@ namespace LersBot
 			this.stopEvent.Set();
 		}
 
-		internal void ProcessSetNotify(User user, string[] arguments)
+		internal void ProcessSetNotifyOn(User user, string[] arguments)
 		{
 			if (user.Context == null)
-				throw new UnauthorizedCommandException(LersBotService.SetNotifyCommand);
+				throw new UnauthorizedCommandException(LersBotService.SetNotifyOnCommand);
 
-			if (arguments.Length == 0 || arguments[0].ToLower() == "on")
-			{
-				user.Context.SendNotifications = true;
+			user.Context.SendNotifications = true;
 
-				bot.SendText(user.ChatId, "Отправка уведомлений включена.");
-			}
-			else if (arguments[0] == "off")
-			{
-				user.Context.SendNotifications = false;
+			bot.SendText(user.ChatId, "Отправка уведомлений включена.");
 
-				bot.SendText(user.ChatId, "Отправка уведомлений отключена.");
-			}
-			else
-			{
-				bot.SendText(user.ChatId, "Неверные параметры команды.");
-			}
+			User.Save();
+		}
+
+		internal void ProcessSetNotifyOff(User user, string[] arguments)
+		{
+			if (user.Context == null)
+				throw new UnauthorizedCommandException(LersBotService.SetNotifyOffCommand);
+
+			user.Context.SendNotifications = false;
+
+			bot.SendText(user.ChatId, "Отправка уведомлений выключена.");
 
 			User.Save();
 		}
