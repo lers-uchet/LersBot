@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -136,6 +137,18 @@ namespace LersBot
 		{
 			foreach (string cmd in commandNames)
 				this.commandHandlers[cmd] = handler;
+		}
+
+		internal void SendDocument(long chatId, MemoryStream stream, string caption, string fileName)
+		{
+			stream.Seek(0, SeekOrigin.Begin);
+
+			var document = default(Telegram.Bot.Types.FileToSend);
+
+			document.Content = stream;
+			document.Filename = fileName;
+
+			bot.SendDocumentAsync(chatId, document, caption).Wait();
 		}
 	}
 }

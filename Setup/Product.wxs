@@ -30,7 +30,9 @@
 				<File Id="NewtonsoftJsonDll"          Source="..\LersBot\bin\Release\Newtonsoft.Json.dll"/>
 				<File Id="SystemNetHttpFormattingDll" Source="..\LersBot\bin\Release\System.Net.Http.Formatting.dll"/>
 				<File Id="TelgramBotDll"              Source="..\LersBot\bin\Release\Telegram.Bot.dll"/>
-				<File Id="LersFrameworkDll"           Source="..\LersBot\bin\Release\Lers.System.dll"/>
+				<File Id="LersSystemDll"              Source="..\LersBot\bin\Release\Lers.System.dll"/>
+				<File Id="LersReportsDll"             Source="..\LersBot\bin\Release\Lers.Reports.dll"/>
+				<File Id="DxXtraReportsDll"           Source="..\LersBot\bin\Release\DevExpress.XtraReports.v16.1.dll"/>
 				<File Id="LersBotConfig"              Source="..\LersBot\bot.config"/>
 
 				<ServiceInstall Id="BotServiceInstaller"

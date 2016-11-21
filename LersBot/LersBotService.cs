@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Linq;
 using System.ServiceProcess;
 using System.Text;
@@ -25,6 +26,7 @@ namespace LersBot
 		private const string GetMeasurePointsCommand = "/mpts";
 		public const string SetNotifyOnCommand = "/setnotify_on";
 		public const string SetNotifyOffCommand = "/setnotify_off";
+		public const string SystemStateReport = "/sysstate";
 
 
 		public LersBotService()
@@ -68,6 +70,7 @@ namespace LersBot
 				bot.AddCommandHandler(ShowMeasurePoints, GetMeasurePointsCommand);
 				bot.AddCommandHandler(notifier.ProcessSetNotifyOn, SetNotifyOnCommand);
 				bot.AddCommandHandler(notifier.ProcessSetNotifyOff, SetNotifyOffCommand);
+				bot.AddCommandHandler(SendSystemStateReport, SystemStateReport);
 
 				bot.Start();
 
@@ -310,6 +313,39 @@ namespace LersBot
 				{
 					Logger.LogError(e.Message);
 				}
+			}
+		}
+
+		/// <summary>
+		/// Отправляет пользователю отчёт о состоянии системы.
+		/// </summary>
+		/// <param name="user"></param>
+		/// <param name="args"></param>
+		private void SendSystemStateReport(User user, string[] args)
+		{
+			if (user.Context == null)
+				throw new UnauthorizedCommandException(SystemStateReport);
+
+			var reportManager = new Lers.Reports.ReportManager(user.Context.Server);
+
+			// Получим системный отчёт о состоянии системы
+			Lers.Reports.Report report = reportManager.GetReportListAllowed().Where(r => r.Type == Lers.Reports.ReportType.SystemState && r.IsSystem).FirstOrDefault();
+
+			if (report == null)
+			{
+				throw new BotException("Отчёт о состоянии системы не найден на сервере");
+			}
+
+			// Формируем отчёт
+			var preparedReport = reportManager.GenerateSystemStateReport(report.Id);
+
+			using (var stream = new MemoryStream(1024 * 1024))
+			{
+				// Экспортируем отчёт в PDF и отправляем пользователю.
+
+				preparedReport.ExportToPdf(stream);
+
+				bot.SendDocument(user.ChatId, stream, $"Отчёт о состоянии системы от {DateTime.Now}", "SystemStateReport.pdf");
 			}
 		}
 	}
