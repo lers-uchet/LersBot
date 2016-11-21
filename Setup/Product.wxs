@@ -25,12 +25,13 @@
 	<Fragment>
 		<ComponentGroup Id="BotComponents" Directory="INSTALLFOLDER">
 			<Component Id="BotService" Guid="{6B691B8E-687B-4C04-B8DA-409595AE002B}">
-				<File Id="LersBotExe" Source="..\LersBot\bin\Release\LersBot.exe" KeyPath="yes"></File>
-				<File Id="LersBotExeConfig" Source="..\LersBot\bin\Release\LersBot.exe.config"></File>
-				<File Id="NewtonsoftJsonDll" Source="..\LersBot\bin\Release\Newtonsoft.Json.dll"></File>
-				<File Id="TelgramBotDll" Source="..\LersBot\bin\Release\Telegram.Bot.dll"></File>
-				<File Id="LersFrameworkDll" Source="..\LersBot\bin\Release\Lers.System.dll"></File>
-				<File Id="LersBotConfig" Source="..\LersBot\bot.config"></File>
+				<File Id="LersBotExe"                 Source="..\LersBot\bin\Release\LersBot.exe" KeyPath="yes"/>
+				<File Id="LersBotExeConfig"           Source="..\LersBot\bin\Release\LersBot.exe.config"/>
+				<File Id="NewtonsoftJsonDll"          Source="..\LersBot\bin\Release\Newtonsoft.Json.dll"/>
+				<File Id="SystemNetHttpFormattingDll" Source="..\LersBot\bin\Release\System.Net.Http.Formatting.dll"/>
+				<File Id="TelgramBotDll"              Source="..\LersBot\bin\Release\Telegram.Bot.dll"/>
+				<File Id="LersFrameworkDll"           Source="..\LersBot\bin\Release\Lers.System.dll"/>
+				<File Id="LersBotConfig"              Source="..\LersBot\bot.config"/>
 
 				<ServiceInstall Id="BotServiceInstaller"
 												Type="ownProcess"
