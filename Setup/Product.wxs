@@ -48,10 +48,10 @@
 			</Component>
 
 			<Component Id="DevExpress" Guid="{A62E0008-1204-44BF-BA3E-3957493A70B5}">
-				<File Id="DxXtraReportsDll"                   Source="..\LersBot\bin\Release\DevExpress.XtraReports.v16.1.dll" KeyPath="yes"/>
-				<File Id="DevExpress.Printing.v16.1.Core.dll" Source="..\LersBot\bin\Release\DevExpress.Printing.v16.1.Core.dll"/>
-				<File Id="DevExpress.Data.v16.1.dll"          Source="..\LersBot\bin\Release\DevExpress.Data.v16.1.dll"/>
-				<File Id="DevExpress.Pdf.v16.1.Core.dll"      Source="..\LersBot\bin\Release\DevExpress.Pdf.v16.1.Core.dll"/>
+				<File Id="DxXtraReportsDll"             Source="..\LersBot\bin\Release\DevExpress.XtraReports.v16.2.dll" KeyPath="yes"/>
+				<File Id="DevExpress.Printing.Core.dll" Source="..\LersBot\bin\Release\DevExpress.Printing.v16.2.Core.dll"/>
+				<File Id="DevExpress.Data.dll"          Source="..\LersBot\bin\Release\DevExpress.Data.v16.2.dll"/>
+				<File Id="DevExpress.Pdf.Core.dll"      Source="..\LersBot\bin\Release\DevExpress.Pdf.v16.2.Core.dll"/>
 			</Component>
 		</ComponentGroup>
 	</Fragment>
