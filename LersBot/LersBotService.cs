@@ -99,6 +99,7 @@ namespace LersBot
 		/// </summary>
 		/// <param name="user"></param>
 		/// <param name="arguments"></param>
+		[Authorize(false)]
 		private void HandleStart(User user, string[] arguments)
 		{
 			if (user.CommandContext == null)
@@ -133,11 +134,7 @@ namespace LersBot
 
 					// Создаём контекст пользователя ЛЭРС УЧЁТ.
 
-					user.Context = new LersContext
-					{
-						Login = context.Login,
-						Password = context.Password
-					};
+					user.Context = new LersContext { Login = context.Login, Password = context.Password };
 
 					try
 					{

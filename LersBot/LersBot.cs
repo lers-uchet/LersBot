@@ -6,6 +6,8 @@ using System.Text.RegularExpressions;
 
 namespace LersBot
 {
+	using CommandHandler = Action<User, string[]>;
+
 	/// <summary>
 	/// Класс для реализации механизма бота.
 	/// </summary>
@@ -13,7 +15,7 @@ namespace LersBot
 	{
 		private Telegram.Bot.TelegramBotClient bot;
 
-		private Dictionary<string, Action<User, string[]>> commandHandlers = new Dictionary<string, Action<User, string[]>>();
+		private Dictionary<string, CommandHandler> commandHandlers = new Dictionary<string, CommandHandler>();
 
 		public string UserName
 		{
@@ -37,7 +39,7 @@ namespace LersBot
 		{
 			// Инициируем подключения к серверу
 
-			foreach (User user in User.Where(x => x.Context != null))
+			foreach (var user in User.Where(x => x.Context != null))
 			{
 				user.Connect();
 			}
@@ -53,7 +55,7 @@ namespace LersBot
 
 			try
 			{
-				User user = User.Where(u => u.TelegramUserId == e.Message.From.Id).FirstOrDefault();
+				var user = User.Where(u => u.TelegramUserId == e.Message.From.Id).FirstOrDefault();
 
 				if (user == null)
 				{
@@ -64,11 +66,6 @@ namespace LersBot
 					};
 
 					User.Add(user);
-				}
-				else if (user.Context != null)
-				{
-					// Подключаемся к серверу.
-					user.Connect();
 				}
 
 				// Обрабатываем команду.
@@ -98,9 +95,7 @@ namespace LersBot
 
 			string command;
 			string[] arguments;
-
-
-			Action<User, string[]> handler;
+			CommandHandler handler;
 
 			// Пользователь может уже обрабатывать команду. В этом случае передадим в качестве
 			// текста команды выполняющуся команду, а в качестве аргументов весь текст сообщения.
@@ -117,9 +112,15 @@ namespace LersBot
 				Array.Copy(commandFields, 1, arguments, 0, arguments.Length);
 			}
 
-
 			if (this.commandHandlers.TryGetValue(command, out handler))
 			{
+				if (user.Context != null && IsAuthorizeRequired(handler))
+				{
+					// Подключаемся к серверу.
+
+					user.Connect();
+				}
+
 				handler(user, arguments);
 			}
 			else
@@ -133,10 +134,12 @@ namespace LersBot
 			this.bot.SendTextMessageAsync(chatId, message).Wait();
 		}
 
-		public void AddCommandHandler(Action<User, string[]> handler, params string[] commandNames)
+		public void AddCommandHandler(CommandHandler handler, params string[] commandNames)
 		{
 			foreach (string cmd in commandNames)
+			{
 				this.commandHandlers[cmd] = handler;
+			}
 		}
 
 		internal void SendDocument(long chatId, MemoryStream stream, string caption, string fileName)
@@ -149,6 +152,22 @@ namespace LersBot
 			document.Filename = fileName;
 
 			bot.SendDocumentAsync(chatId, document, caption).Wait();
+		}
+
+		private static bool IsAuthorizeRequired(CommandHandler handler)
+		{
+			bool required = true;
+
+			var methodInfo = handler.Method;
+
+			var customAttribute = (AuthorizeAttribute)methodInfo.GetCustomAttributes(typeof(AuthorizeAttribute), true).FirstOrDefault();
+
+			if (customAttribute != null)
+			{
+				required = customAttribute.IsAuthorizeRequired;
+			}
+
+			return required;
 		}
 	}
 }
