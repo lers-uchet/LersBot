@@ -27,6 +27,7 @@ namespace LersBot
 		public const string SetNotifyOnCommand = "/setnotify_on";
 		public const string SetNotifyOffCommand = "/setnotify_off";
 		public const string SystemStateReport = "/sysstate";
+		public const string PortStatus = "/portstatus";
 
 
 		public LersBotService()
@@ -71,6 +72,7 @@ namespace LersBot
 				bot.AddCommandHandler(notifier.ProcessSetNotifyOn, SetNotifyOnCommand);
 				bot.AddCommandHandler(notifier.ProcessSetNotifyOff, SetNotifyOffCommand);
 				bot.AddCommandHandler(SendSystemStateReport, SystemStateReport);
+				bot.AddCommandHandler(SendPortStatus, PortStatus);
 
 				bot.Start();
 
@@ -326,7 +328,7 @@ namespace LersBot
 			var reportManager = new Lers.Reports.ReportManager(user.Context.Server);
 
 			// Получим системный отчёт о состоянии системы
-			Lers.Reports.Report report = reportManager.GetReportListAllowed().Where(r => r.Type == Lers.Reports.ReportType.SystemState && r.IsSystem).FirstOrDefault();
+			var report = reportManager.GetReportListAllowed().Where(r => r.Type == Lers.Reports.ReportType.SystemState && r.IsSystem).FirstOrDefault();
 
 			if (report == null)
 			{
@@ -344,6 +346,21 @@ namespace LersBot
 
 				bot.SendDocument(user.ChatId, stream, $"Отчёт о состоянии системы от {DateTime.Now}", "SystemStateReport.pdf");
 			}
+		}
+
+		[Authorize(true)]
+		private void SendPortStatus(User user, string[] args)
+		{
+			var status = user.Context.Server.PollPorts.GetPortStatus();
+
+			var sb = new StringBuilder();
+			sb.AppendLine($"Служб опроса: {status.PollServices}");
+			sb.AppendLine($"Портов опроса: {status.Total}");
+			sb.AppendLine($"Активных портов: {status.Active}");
+			sb.AppendLine($"Свободных портов: {status.Free}");
+			sb.AppendLine($"Заблокированных портов: {status.Blocked}");			
+
+			bot.SendText(user.ChatId, sb.ToString());
 		}
 	}
 }
