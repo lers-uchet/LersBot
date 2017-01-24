@@ -44,8 +44,10 @@
     <Reference Include="DevExpress.Utils.v16.2.UI, Version=16.2.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
     <Reference Include="DevExpress.XtraReports.v16.2.Extensions, Version=16.2.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
     <Reference Include="DevExpress.XtraReports.v16.2, Version=16.2.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="Lers.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=e7c6d6299713498c, processorArchitecture=MSIL" />
     <Reference Include="Lers.Reports, Version=3.0.0.0, Culture=neutral, PublicKeyToken=e7c6d6299713498c, processorArchitecture=MSIL" />
     <Reference Include="Lers.System, Version=3.0.0.0, Culture=neutral, PublicKeyToken=e7c6d6299713498c, processorArchitecture=MSIL" />
+    <Reference Include="Lers.Utils, Version=1.0.0.0, Culture=neutral, PublicKeyToken=e7c6d6299713498c, processorArchitecture=MSIL" />
     <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
