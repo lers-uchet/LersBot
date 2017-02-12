@@ -182,8 +182,8 @@ namespace LersBot
 			bot.SendText(chatId, "Запущен опрос");
 
 			var autoResetEvent = new System.Threading.AutoResetEvent(false);
-
-			MeasurePointData.CurrentsSaved += (sender, e) =>
+			
+			EventHandler<MeasurePointConsumptionEventArgs> handler = (sender, e) =>
 			{
 				try
 				{
@@ -197,6 +197,8 @@ namespace LersBot
 				}
 			};
 
+			MeasurePointData.CurrentsSaved += handler;
+
 			MeasurePointData.SubscribeSaveCurrents(server, pollSessionId);
 
 			if (!autoResetEvent.WaitOne(120000))
@@ -205,6 +207,8 @@ namespace LersBot
 			}
 
 			MeasurePointData.UnsubscribeSaveCurrents(server);
+
+			MeasurePointData.CurrentsSaved -= handler;
 		}
 
 		private void SendCurrents(long chatId, MeasurePointConsumptionRecord record)
