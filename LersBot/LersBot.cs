@@ -49,6 +49,12 @@ namespace LersBot
 
 		private void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
 		{
+			// Обрабатываем только текстовые сообщения.
+			if (e.Message.Type != Telegram.Bot.Types.Enums.MessageType.TextMessage)
+			{
+				return;
+			}
+
 			// Проверим от кого поступила команда.
 
 			long chatId = e.Message.Chat.Id;
