@@ -28,6 +28,7 @@ namespace LersBot
 		public const string SetNotifyOffCommand = "/setnotify_off";
 		public const string SystemStateReport = "/sysstate";
 		public const string PortStatus = "/portstatus";
+		public const string GetMyJobsCommand = "/getmyjobs";
 
 
 		public LersBotService()
@@ -73,6 +74,7 @@ namespace LersBot
 				bot.AddCommandHandler(notifier.ProcessSetNotifyOff, SetNotifyOffCommand);
 				bot.AddCommandHandler(SendSystemStateReport, SystemStateReport);
 				bot.AddCommandHandler(SendPortStatus, PortStatus);
+				bot.AddCommandHandler(GetMyJobs, GetMyJobsCommand);
 
 				bot.Start();
 
@@ -182,7 +184,7 @@ namespace LersBot
 			bot.SendText(chatId, "Запущен опрос");
 
 			var autoResetEvent = new System.Threading.AutoResetEvent(false);
-			
+
 			EventHandler<MeasurePointConsumptionEventArgs> handler = (sender, e) =>
 			{
 				try
@@ -362,7 +364,71 @@ namespace LersBot
 			sb.AppendLine($"Портов опроса: {status.Total}");
 			sb.AppendLine($"Активных портов: {status.Active}");
 			sb.AppendLine($"Свободных портов: {status.Free}");
-			sb.AppendLine($"Заблокированных портов: {status.Blocked}");			
+			sb.AppendLine($"Заблокированных портов: {status.Blocked}");
+
+			bot.SendText(user.ChatId, sb.ToString());
+		}
+
+		/// <summary>
+		/// Обрабатывает запрос работ на объектах учёта.
+		/// </summary>
+		/// <param name="user"></param>
+		/// <param name="args"></param>
+		[Authorize(true)]
+		private void GetMyJobs(User user, string[] args)
+		{
+			if (user.Context == null)
+				throw new UnauthorizedCommandException(SystemStateReport);
+
+			var server = user.Context.Server;
+
+			var currentAccount = server.Accounts.Current;
+
+			// Запрашиваем список невыполненных работ на объектах
+
+			var nodeJobs = server.NodeJobs.GetList().Where(x => x.PerformerAccount.Id == currentAccount.Id && x.State != NodeJobState.Completed);
+
+			var sb = new StringBuilder();
+
+			foreach (var job in nodeJobs)
+			{
+				sb.AppendLine($"Задание: {job.Title}");
+				sb.AppendLine($"Объект учёта: {job.Node.Title}");
+
+				var today = DateTime.Today;
+
+				if (job.ScheduledEndDate < today)
+				{
+					int overdue = (int)(today - job.ScheduledEndDate.Date).TotalDays;
+
+					sb.AppendLine($"{Emoji.Warning}Просрочено на {overdue} дн.");
+				}
+				else
+				{
+					int dueDays = (int)(job.ScheduledEndDate.Date - today).TotalDays;
+
+					string due;
+
+					if (dueDays == 0)
+					{
+						due = "сегодня";
+					}
+					else
+					{
+						due = $"через {dueDays}дн.";
+					}
+
+					sb.AppendLine($"Срок выполнения: {due}");
+				}
+
+				sb.AppendLine();
+				sb.AppendLine();
+			}
+
+			if (sb.Length == 0)
+			{
+				sb.AppendLine("Нет невыполненных работ.");
+			}
 
 			bot.SendText(user.ChatId, sb.ToString());
 		}
