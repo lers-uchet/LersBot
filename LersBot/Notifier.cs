@@ -68,7 +68,7 @@ namespace LersBot
 				return;
 			}
 
-			var notifications = user.Context.Server.Notifications.GetList().OrderBy(x => x.Id);
+			var notifications = user.Context.Server.Notifications.GetListAsync().Result.OrderBy(x => x.Id);
 
 			if (!notifications.Any())
 			{
