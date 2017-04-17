@@ -104,7 +104,7 @@ namespace LersBot
 		{
 			if (this.Context.Server == null)
 			{
-				this.Context.Server = new Lers.LersServer();
+				this.Context.Server = new Lers.LersServer("Бот Telegram");
 			}
 
 			if (!this.Context.Server.IsConnected)
