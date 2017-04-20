@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Lers.Administration;
 
 namespace LersBot
@@ -23,22 +24,24 @@ namespace LersBot
 			this.notifyThread.DoWork += NotifyThread_DoWork;
 		}
 
-		private void NotifyThread_DoWork(object sender, DoWorkEventArgs e)
+		private async void NotifyThread_DoWork(object sender, DoWorkEventArgs e)
 		{
-			CheckNotifications();
+			await CheckNotifications();
 
 			while (!this.stopEvent.WaitOne(60000))
 			{
 				// Проверка запускается каждые 60 секунд
-				CheckNotifications();
+				await CheckNotifications();
 			}
 		}
 
-		private void CheckNotifications()
+		private async Task CheckNotifications()
 		{
 			// Проходим по всем зарегистрированным пользователям.
 
-			foreach (var user in User.Where(x => x.Context != null))
+			var userList = User.Where(x => x.Context != null);
+
+			foreach (var user in userList)
 			{
 				try
 				{
@@ -50,25 +53,25 @@ namespace LersBot
 
 					user.Connect();
 
-					CheckUserNotifications(user);
+					await CheckUserNotifications(user);
 				}
 				catch (Exception exc)
 				{
-					Logger.LogError(exc.Message);
+					Logger.LogError("Ошибка проверки уведомлений пользователя. " + exc.ToString());
 				}
 			}
 
 			User.Save();
 		}
 
-		private void CheckUserNotifications(User user)
+		private async Task CheckUserNotifications(User user)
 		{
 			if (!AccountReceivesNotificationsNow(user.Context.Server.Accounts.Current))
 			{
 				return;
 			}
 
-			var notifications = user.Context.Server.Notifications.GetListAsync().Result.OrderBy(x => x.Id);
+			var notifications = (await user.Context.Server.Notifications.GetListAsync()).OrderBy(x => x.Id);
 
 			if (!notifications.Any())
 			{
@@ -108,7 +111,7 @@ namespace LersBot
 							text += $"\r\n{notification.Url}";
 						}
 
-						bot.SendText(user.ChatId, text);
+						await bot.SendTextAsync(user.ChatId, text);
 					}
 				}
 			}

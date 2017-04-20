@@ -51,11 +51,29 @@ namespace LersBot
 			}
 		}
 
+		internal static void Remove(User user)
+		{
+			lock (List)
+			{
+				List.Remove(user);
+
+				Save();
+			}
+		}
+
 		internal static IEnumerable<User> Where(Func<User, bool> predicate)
 		{
 			lock (List)
 			{
 				return List.Where(predicate).ToList();
+			}
+		}
+
+		internal static User FirstOrDefault(Func<User, bool> predicate)
+		{
+			lock (List)
+			{
+				return List.FirstOrDefault(predicate);
 			}
 		}
 

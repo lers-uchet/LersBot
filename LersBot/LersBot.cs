@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace LersBot
 {
@@ -137,7 +138,32 @@ namespace LersBot
 
 		public void SendText(long chatId, string message)
 		{
-			this.bot.SendTextMessageAsync(chatId, message).Wait();
+			SendTextAsync(chatId, message).Wait();
+		}
+
+		/// <summary>
+		/// Асинхронно отправляет сообщение пользователю.
+		/// </summary>
+		/// <param name="chatId"></param>
+		/// <param name="message"></param>
+		/// <returns></returns>
+		public async Task SendTextAsync(long chatId, string message)
+		{
+			try
+			{
+				await this.bot.SendTextMessageAsync(chatId, message);
+			}
+			catch (Telegram.Bot.Exceptions.ApiRequestException exc) when (exc.ErrorCode == 403)
+			{
+				var user = User.FirstOrDefault(x => x.ChatId == chatId);
+
+				if (user != null)
+				{
+					Logger.LogError($"Пользователь {user.Context.Login} запретил боту отправлять сообщения. Пользователь удаляется из списка.");
+
+					User.Remove(user);
+				}
+			}
 		}
 
 		public void AddCommandHandler(CommandHandler handler, params string[] commandNames)

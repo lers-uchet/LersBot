@@ -64,7 +64,7 @@ namespace LersBot
 
 				notifier = new Notifier(bot);
 
-				Logger.LogMessage($"Stariting {bot.UserName}");
+				Logger.LogMessage($"Starting {bot.UserName}");
 
 				bot.AddCommandHandler(HandleStart, StartCommand);
 				bot.AddCommandHandler(ShowCurrents, GetCurrentsCommand);
