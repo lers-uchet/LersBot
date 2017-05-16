@@ -386,7 +386,10 @@ namespace LersBot
 
 			// Запрашиваем список невыполненных работ на объектах
 
-			var nodeJobs = server.NodeJobs.GetList().Where(x => x.PerformerAccount.Id == currentAccount.Id && x.State != NodeJobState.Completed);
+			var nodeJobs = server.NodeJobs
+				.GetListAsync()
+				.Result
+				.Where(x => x.PerformerAccount?.Id == currentAccount.Id && x.State != NodeJobState.Completed);
 
 			var sb = new StringBuilder();
 
