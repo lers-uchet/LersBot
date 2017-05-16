@@ -287,7 +287,7 @@ namespace LersBot
 				{
 					string addition = (sb.Length != 0) ? "\r\n" + node.Title : node.Title;
 
-					if (sb.Length + addition.Length >= 4096)
+					if (sb.Length + addition.Length > 4096)
 					{
 						// Максимальная длина достигнута - отправляем сообщение.
 
