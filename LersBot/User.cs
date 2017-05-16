@@ -132,7 +132,15 @@ namespace LersBot
 
 				this.Context.Server.VersionMismatch += (sender, e) => e.Ignore = true;
 
-				this.Context.Server.Connect(Config.Instance.LersServerAddress, Config.Instance.LersServerPort, auth);
+				try
+				{
+					this.Context.Server.Connect(Config.Instance.LersServerAddress, Config.Instance.LersServerPort, auth);
+				}
+				catch (Exception exc)
+				{
+					Logger.LogError($"Ошибка подключения пользователя {this.Context.Login} к серверу {Config.Instance.LersServerAddress}. {exc.Message}");
+					Remove(this);
+				}
 			}
 		}
 	}
