@@ -276,35 +276,7 @@ namespace LersBot
 
 			try
 			{
-				// Максимальная длина сообщения - 4096 UTF8 символов.
-				// https://core.telegram.org/method/messages.sendMessage
-
-				// Отправляем список блоками, не превышающими максимальную длину.
-
-				StringBuilder sb = new StringBuilder(4096);
-
-				foreach (var node in nodes.OrderBy(x => x.Title))
-				{
-					string addition = (sb.Length != 0) ? "\r\n" + node.Title : node.Title;
-
-					if (sb.Length + addition.Length > 4096)
-					{
-						// Максимальная длина достигнута - отправляем сообщение.
-
-						bot.SendText(chatId, sb.ToString());
-
-						sb.Clear();
-						sb.Append(node.Title);
-					}
-					else
-					{
-						sb.Append(addition);
-					}
-				}
-
-				// Отправляем оставшийся текст или весь текст, если длина не была превышена.
-
-				bot.SendText(chatId, sb.ToString());
+				SendListMessage(chatId, nodes.OrderBy(x => x.Title), x => x.Title);
 			}
 			catch (AggregateException ae)
 			{
@@ -314,7 +286,7 @@ namespace LersBot
 				}
 			}
 		}
-
+				
 		private void ShowMeasurePoints(User user, string[] arguments)
 		{
 			if (user.Context == null)
@@ -332,10 +304,7 @@ namespace LersBot
 
 			try
 			{
-				foreach (var mp in measurePoints)
-				{
-					bot.SendText(chatId, mp.FullTitle);
-				}
+				SendListMessage(chatId, measurePoints.OrderBy(x => x.FullTitle), x => x.FullTitle);
 			}
 			catch (AggregateException ae)
 			{
@@ -344,6 +313,48 @@ namespace LersBot
 					Logger.LogError(e.Message);
 				}
 			}
+		}
+
+		private void SendListMessage<T>(long chatId, IEnumerable<T> list, Func<T, string> textSelector)
+		{
+			if (list == null)
+				throw new ArgumentNullException(nameof(list));
+
+			if (!list.Any())
+				throw new InvalidOperationException("Список не содержит элементов.");
+
+			if (textSelector == null)
+				throw new ArgumentNullException(nameof(textSelector));
+
+			// Максимальная длина сообщения - 4096 UTF8 символов.
+			// https://core.telegram.org/method/messages.sendMessage
+
+			// Отправляем список блоками, не превышающими максимальную длину.
+
+			StringBuilder sb = new StringBuilder(4096);
+
+			foreach (var item in list)
+			{
+				string addition = (sb.Length != 0) ? "\r\n" + textSelector(item) : textSelector(item);
+
+				if (sb.Length + addition.Length > 4096)
+				{
+					// Максимальная длина достигнута - отправляем сообщение.
+
+					bot.SendText(chatId, sb.ToString());
+
+					sb.Clear();
+					sb.Append(textSelector(item));
+				}
+				else
+				{
+					sb.Append(addition);
+				}
+			}
+
+			// Отправляем оставшийся текст или весь текст, если длина не была превышена.
+
+			bot.SendText(chatId, sb.ToString());
 		}
 
 		/// <summary>
