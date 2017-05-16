@@ -276,10 +276,35 @@ namespace LersBot
 
 			try
 			{
-				foreach (var node in nodes)
+				// Максимальная длина сообщения - 4096 UTF8 символов.
+				// https://core.telegram.org/method/messages.sendMessage
+
+				// Отправляем список блоками, не превышающими максимальную длину.
+
+				StringBuilder sb = new StringBuilder(4096);
+
+				foreach (var node in nodes.OrderBy(x => x.Title))
 				{
-					bot.SendText(chatId, node.Title);
+					string addition = (sb.Length != 0) ? "\r\n" + node.Title : node.Title;
+
+					if (sb.Length + addition.Length >= 4096)
+					{
+						// Максимальная длина достигнута - отправляем сообщение.
+
+						bot.SendText(chatId, sb.ToString());
+
+						sb.Clear();
+						sb.Append(node.Title);
+					}
+					else
+					{
+						sb.Append(addition);
+					}
 				}
+
+				// Отправляем оставшийся текст или весь текст, если длина не была превышена.
+
+				bot.SendText(chatId, sb.ToString());
 			}
 			catch (AggregateException ae)
 			{
