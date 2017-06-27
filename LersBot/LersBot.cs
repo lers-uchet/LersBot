@@ -121,11 +121,18 @@ namespace LersBot
 
 			if (this.commandHandlers.TryGetValue(command, out handler))
 			{
-				if (user.Context != null && IsAuthorizeRequired(handler))
+				if (IsAuthorizeRequired(handler))
 				{
-					// Подключаемся к серверу.
+					if (user.Context != null)
+					{
+						// Подключаемся к серверу.
 
-					user.Connect();
+						user.Connect();
+					}
+					else
+					{
+						throw new UnauthorizedCommandException(command);
+					}
 				}
 
 				handler(user, arguments);
