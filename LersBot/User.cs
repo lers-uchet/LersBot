@@ -136,7 +136,7 @@ namespace LersBot
 				{
 					this.Context.Server.Connect(Config.Instance.LersServerAddress, Config.Instance.LersServerPort, auth);
 				}
-				catch (Exception exc)
+				catch (Lers.Networking.AuthorizationFailedException exc)
 				{
 					Logger.LogError($"Ошибка подключения пользователя {this.Context.Login} к серверу {Config.Instance.LersServerAddress}. {exc.Message}");
 					Remove(this);
