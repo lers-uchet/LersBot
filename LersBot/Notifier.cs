@@ -16,7 +16,7 @@ namespace LersBot
 
 		private BackgroundWorker notifyThread = new BackgroundWorker();
 
-		private AutoResetEvent stopEvent = new AutoResetEvent(false);
+		private CancellationTokenSource stopToken = new CancellationTokenSource();
 
 		public Notifier(LersBot bot)
 		{
@@ -28,10 +28,19 @@ namespace LersBot
 		{
 			await CheckNotifications();
 
-			while (!this.stopEvent.WaitOne(60000))
+			while (!this.stopToken.IsCancellationRequested)
 			{
-				// Проверка запускается каждые 60 секунд
-				await CheckNotifications();
+				try
+				{
+					// Проверка запускается каждые 60 секунд
+					await Task.Delay(60000, this.stopToken.Token);
+
+					await CheckNotifications();
+				}
+				catch (OperationCanceledException)
+				{
+					return;
+				}
 			}
 		}
 
@@ -138,10 +147,7 @@ namespace LersBot
 			this.notifyThread.RunWorkerAsync();
 		}
 
-		internal void Stop()
-		{
-			this.stopEvent.Set();
-		}
+		internal void Stop() => this.stopToken.Cancel();
 
 		internal void ProcessSetNotifyOn(User user, string[] arguments)
 		{
