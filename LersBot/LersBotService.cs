@@ -30,7 +30,6 @@ namespace LersBot
 		public const string PortStatus = "/portstatus";
 		public const string GetMyJobsCommand = "/getmyjobs";
 
-
 		public LersBotService()
 		{
 			InitializeComponent();
@@ -46,7 +45,6 @@ namespace LersBot
 			OnStop();
 		}
 
-
 		/// <summary>
 		/// Вызывается при запуске службы.
 		/// </summary>
@@ -55,10 +53,10 @@ namespace LersBot
 		{
 			try
 			{
+				Logger.Initialize(Config.LogFilePath);
+
 				Config.Load();
 				User.LoadList();
-
-				Logger.Initialize(Config.LogFilePath);
 
 				bot = new LersBot();
 
@@ -96,7 +94,6 @@ namespace LersBot
 
 			Logger.LogMessage($"Stopped {bot.UserName}");
 		}
-
 
 		/// <summary>
 		/// Обрабатывает команду начала сеанса работы пользователя с ботом.
@@ -286,7 +283,7 @@ namespace LersBot
 				}
 			}
 		}
-				
+
 		private void ShowMeasurePoints(User user, string[] arguments)
 		{
 			if (user.Context == null)

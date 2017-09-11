@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Newtonsoft.Json;
 
 namespace LersBot
@@ -9,14 +7,13 @@ namespace LersBot
 	/// <summary>
 	/// Параметры конфигурации бота.
 	/// </summary>
-	class Config
+	internal class Config
 	{
-		public static string UsersFilePath = Environment.ExpandEnvironmentVariables(@"%LOCALAPPDATA%\LERS\LersBot\users.json");
+		public static readonly string UsersFilePath = Environment.ExpandEnvironmentVariables(@"%LOCALAPPDATA%\LERS\LersBot\users.json");
 
-		public static string LogFilePath = Environment.ExpandEnvironmentVariables(@"%ALLUSERSPROFILE%\LERS\LersBot\bot.log");
+		public static readonly string LogFilePath = Environment.ExpandEnvironmentVariables(@"%ALLUSERSPROFILE%\LERS\LersBot\bot.log");
 
 		private static string BotConfigFileName = "bot.config";
-
 
 		public static Config Instance { get; private set; }
 
@@ -32,7 +29,6 @@ namespace LersBot
 
 			Instance = JsonConvert.DeserializeObject<Config>(configText);
 		}
-
 
 		public string Token { get; set; }
 
