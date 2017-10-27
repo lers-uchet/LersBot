@@ -18,13 +18,10 @@ namespace LersBot
 
 		private Dictionary<string, CommandHandler> commandHandlers = new Dictionary<string, CommandHandler>();
 
-		public string UserName
-		{
-			get
-			{
-				return this.bot.GetMeAsync().Result.Username;
-			}
-		}
+		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
+
+		public string UserName => this.bot.GetMeAsync().Result.Username;
 
 		public LersBot()
 		{
@@ -84,7 +81,7 @@ namespace LersBot
 
 				bot.SendTextMessageAsync(chatId, message);
 
-				Logger.LogError(message);
+				logger.Error(message);
 			}
 		}
 
@@ -166,7 +163,7 @@ namespace LersBot
 
 				if (user != null)
 				{
-					Logger.LogError($"Пользователь {user.Context.Login} запретил боту отправлять сообщения. Пользователь удаляется из списка.");
+					logger.Error($"Пользователь {user.Context.Login} запретил боту отправлять сообщения. Пользователь удаляется из списка.");
 
 					User.Remove(user);
 				}

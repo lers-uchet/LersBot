@@ -11,6 +11,8 @@ namespace LersBot
 	/// </summary>
 	class User
 	{
+		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
 		/// <summary>
 		/// Список зарегистрированных пользователей.
 		/// </summary>
@@ -138,7 +140,7 @@ namespace LersBot
 				}
 				catch (Lers.Networking.AuthorizationFailedException exc)
 				{
-					Logger.LogError($"Ошибка подключения пользователя {this.Context.Login} к серверу {Config.Instance.LersServerAddress}. {exc.Message}");
+					logger.Error($"Ошибка подключения пользователя {this.Context.Login} к серверу {Config.Instance.LersServerAddress}. {exc.Message}");
 					Remove(this);
 				}
 			}

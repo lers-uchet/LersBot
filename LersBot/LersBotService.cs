@@ -16,6 +16,8 @@ namespace LersBot
 	/// </summary>
 	partial class LersBotService : ServiceBase
 	{
+		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
 		private LersBot bot;
 
 		private Notifier notifier;
@@ -51,10 +53,13 @@ namespace LersBot
 		/// <param name="args"></param>
 		protected override void OnStart(string[] args)
 		{
+			logger.Info(
+				$"\r\n==========================================\r\n"
+				+ "=== Загрузка бота Telegram для сервера ЛЭРС УЧЁТ...\r\n"
+				+ "========================================== ");
+
 			try
 			{
-				Logger.Initialize(Config.LogFilePath);
-
 				Config.Load();
 				User.LoadList();
 
@@ -62,7 +67,7 @@ namespace LersBot
 
 				notifier = new Notifier(bot);
 
-				Logger.LogMessage($"Starting {bot.UserName}");
+				logger.Info($"Starting {bot.UserName}");
 
 				bot.AddCommandHandler(HandleStart, StartCommand);
 				bot.AddCommandHandler(ShowCurrents, GetCurrentsCommand);
@@ -80,7 +85,8 @@ namespace LersBot
 			}
 			catch (Exception exc)
 			{
-				Logger.LogMessage($"Ошибка запуска бота. {exc.ToString()}");
+				logger.Info(exc, "Ошибка запуска бота.");
+
 				throw;
 			}
 		}
@@ -92,7 +98,7 @@ namespace LersBot
 		{
 			notifier.Stop();
 
-			Logger.LogMessage($"Stopped {bot.UserName}");
+			logger.Info($"Stopped {bot.UserName}");
 		}
 
 		/// <summary>
@@ -279,7 +285,7 @@ namespace LersBot
 			{
 				foreach (var e in ae.InnerExceptions)
 				{
-					Logger.LogError(e.Message);
+					logger.Error(e.Message);
 				}
 			}
 		}
@@ -307,7 +313,7 @@ namespace LersBot
 			{
 				foreach (var e in ae.InnerExceptions)
 				{
-					Logger.LogError(e.Message);
+					logger.Error(e.Message);
 				}
 			}
 		}

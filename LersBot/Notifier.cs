@@ -18,6 +18,9 @@ namespace LersBot
 
 		private CancellationTokenSource stopToken = new CancellationTokenSource();
 
+		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
+
 		public Notifier(LersBot bot)
 		{
 			this.bot = bot;
@@ -66,7 +69,7 @@ namespace LersBot
 				}
 				catch (Exception exc)
 				{
-					Logger.LogError("Ошибка проверки уведомлений пользователя. " + exc.ToString());
+					logger.Error(exc, "Ошибка проверки уведомлений пользователя. ");
 				}
 			}
 
