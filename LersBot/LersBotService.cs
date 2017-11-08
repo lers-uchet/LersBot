@@ -279,7 +279,8 @@ namespace LersBot
 
 			try
 			{
-				SendListMessage(chatId, nodes.OrderBy(x => x.Title), x => x.Title);
+				var comparer = new Lers.Utils.NaturalSortComparer();
+				SendListMessage(chatId, nodes.OrderBy(x => x.Title, comparer), x => x.Title);
 			}
 			catch (AggregateException ae)
 			{
@@ -307,7 +308,9 @@ namespace LersBot
 
 			try
 			{
-				SendListMessage(chatId, measurePoints.OrderBy(x => x.FullTitle), x => x.FullTitle);
+				var comparer = new Lers.Utils.NaturalSortComparer();
+
+				SendListMessage(chatId, measurePoints.OrderBy(x => x.FullTitle, comparer), x => x.FullTitle);
 			}
 			catch (AggregateException ae)
 			{
