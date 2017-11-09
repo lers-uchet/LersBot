@@ -35,7 +35,10 @@ namespace LersBot
 
 				var obj = JsonConvert.DeserializeObject<List<User>>(content);
 
-				List.AddRange(obj);
+				if (obj != null)
+				{
+					List.AddRange(obj);
+				}
 			}
 		}
 
