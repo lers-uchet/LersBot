@@ -90,50 +90,56 @@ namespace LersBot
 				return;
 			}
 
+			// Сохраним дату самого нового сообщения
+			Lers.Notification lastNotify = notifications.OrderBy(x => x.Id).Last();
+
 			// При первом запуске уведомления не рассылаем.
-
-			if (user.Context.LastNotificationId != 0)
+			try
 			{
-				foreach (var notification in notifications)
+				if (user.Context.LastNotificationId != 0)
 				{
-					if (notification.Id > user.Context.LastNotificationId)
+					foreach (var notification in notifications)
 					{
-						string text = "";
-
-						switch (notification.Type)
+						if (notification.Id > user.Context.LastNotificationId)
 						{
-							case Lers.NotificationType.CriticalError:
-								text += Emoji.StopSign;
-								break;
+							string text = "";
 
-							case Lers.NotificationType.Incident:
-							case Lers.NotificationType.EquipmentCalibrationRequired:
-								text += Emoji.Warning;
-								break;
+							switch (notification.Importance)
+							{
+								case Lers.Importance.Warn:
+									text += Emoji.Warning;
+									break;
 
-							default:
-								text += Emoji.InformationSource;
-								break;
+								case Lers.Importance.Error:
+									text += Emoji.StopSign;
+									break;
+
+								default:
+									text += Emoji.InformationSource;
+									break;
+							}
+
+							text += " " + notification.Message;
+
+							if (!string.IsNullOrEmpty(notification.Url))
+							{
+								text += $"\r\n{notification.Url}";
+							}
+
+							await bot.SendTextAsync(user.ChatId, text);
+
+							// Сохраним последнее отправленное сообщение.
+							lastNotify = notification;
 						}
-
-						text += " " + notification.Message;
-
-						if (!string.IsNullOrEmpty(notification.Url))
-						{
-							text += $"\r\n{notification.Url}";
-						}
-
-						await bot.SendTextAsync(user.ChatId, text);
 					}
 				}
 			}
-
-			// Сохраним дату самого нового сообщения
-
-			Lers.Notification lastNotify = notifications.OrderBy(x => x.Id).Last();
-
-			user.Context.LastNotificationId = lastNotify.Id;
-			user.Context.LastNotificationDate = lastNotify.DateTime;
+			finally
+			{
+				// Сохраним в контекст пользователя информацию о последнем отправленном сообщении.
+				user.Context.LastNotificationId = lastNotify.Id;
+				user.Context.LastNotificationDate = lastNotify.DateTime;
+			}
 		}
 
 		private static bool AccountReceivesNotificationsNow(Account current)
