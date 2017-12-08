@@ -218,44 +218,30 @@ namespace LersBot
 
 		private void SendCurrents(long chatId, MeasurePointConsumptionRecord record)
 		{
-			var valueNames = new List<string>();
-			var valueDisplayNames = new List<string>();
-
-			switch (record.ResourceKind)
-			{
-				case ResourceKind.Water:
-					var waterValues = Enum.GetValues(typeof(WaterRecordValues)).Cast<WaterRecordValues>().Where(v => v != WaterRecordValues.All && v != WaterRecordValues.None).ToList();
-					waterValues.ForEach(v => valueNames.Add(v.ToString()));
-					break;
-
-				case ResourceKind.Gas:
-					var gasValues = Enum.GetValues(typeof(GasRecordValues)).Cast<GasRecordValues>().Where(v => v != GasRecordValues.All && v != GasRecordValues.None).ToList();
-
-					gasValues.ForEach(v => valueNames.Add(v.ToString()));
-
-					break;
-
-				case ResourceKind.Electricity:
-					var electricValues = Enum.GetValues(typeof(ElectricCurrentsRecordValues)).Cast<ElectricCurrentsRecordValues>().Where(v => v != ElectricCurrentsRecordValues.All && v != ElectricCurrentsRecordValues.None).ToList();
-
-					electricValues.ForEach(v => valueNames.Add(v.ToString()));
-
-					break;
-
-				default: throw new InvalidOperationException("Неверный тип ресурса");
-			}
+			// TODO: переписать после того как DataRecord будет реализовывать IEnumerable
 
 			var sb = new StringBuilder();
 
-			for (int i = 0; i < valueNames.Count; ++i)
+			var paramList = Lers.Utils.EnumUtils
+				.GetValues<DataParameter>()
+				.Where(x => x != DataParameter.None);
+
+			foreach (var param in paramList)
 			{
-				double? val = record.GetValue(valueNames[i]);
-
-				if (val.HasValue)
+				try
 				{
-					string text = $"{valueNames[i]} = {val.Value:f2}";
+					double? val = record.GetValue(param);
 
-					sb.AppendLine(text);
+					if (val.HasValue)
+					{
+						string text = $"{param.ToString()} = {val.Value:f2}";
+
+						sb.AppendLine(text);
+					}
+				}
+				catch
+				{
+					// todo: после реализации IEnumerable убрать этот блок catch.
 				}
 			}
 
