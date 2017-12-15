@@ -216,32 +216,22 @@ namespace LersBot
 			MeasurePointData.CurrentsSaved -= handler;
 		}
 
+		/// <summary>
+		/// Отправляет список полученных текущих данных.
+		/// </summary>
+		/// <param name="chatId"></param>
+		/// <param name="record"></param>
 		private void SendCurrents(long chatId, MeasurePointConsumptionRecord record)
 		{
-			// TODO: переписать после того как DataRecord будет реализовывать IEnumerable
-
 			var sb = new StringBuilder();
 
-			var paramList = Lers.Utils.EnumUtils
-				.GetValues<DataParameter>()
-				.Where(x => x != DataParameter.None);
-
-			foreach (var param in paramList)
+			foreach (var parameter in record)
 			{
-				try
+				if (parameter.Value.HasValue)
 				{
-					double? val = record.GetValue(param);
+					string text = $"{parameter.Key.ToString()} = {parameter.Value:f2}";
 
-					if (val.HasValue)
-					{
-						string text = $"{param.ToString()} = {val.Value:f2}";
-
-						sb.AppendLine(text);
-					}
-				}
-				catch
-				{
-					// todo: после реализации IEnumerable убрать этот блок catch.
+					sb.AppendLine(text);
 				}
 			}
 
