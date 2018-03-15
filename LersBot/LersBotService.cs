@@ -227,9 +227,11 @@ namespace LersBot
 
 			foreach (var parameter in record)
 			{
-				if (parameter.Value.HasValue)
+				if (parameter.Value != null)
 				{
-					string text = $"{parameter.Key.ToString()} = {parameter.Value:f2}";
+					var desc = DataParameterDescriptor.Get(parameter.Key);
+
+					string text = $"{desc.ShortTitle} = {parameter.Value:f2}";
 
 					sb.AppendLine(text);
 				}
