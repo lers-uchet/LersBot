@@ -83,6 +83,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CommandArguments.cs" />
     <Compile Include="AuthorizeAttribute.cs" />
     <Compile Include="BotException.cs" />
     <Compile Include="CommandContext.cs" />

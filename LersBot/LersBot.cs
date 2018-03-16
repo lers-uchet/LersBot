@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace LersBot
@@ -88,7 +87,8 @@ namespace LersBot
 
 		private void ProcessCommand(User user, string text)
 		{
-			string[] commandFields = Regex.Split(text, @"\s");
+			// Разделяем сообщение на аргументы.
+			string[] commandFields = CommandArguments.Split(text);
 
 			if (commandFields.Length == 0)
 			{
