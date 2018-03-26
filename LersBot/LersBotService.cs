@@ -231,7 +231,7 @@ namespace LersBot
 				{
 					var desc = DataParameterDescriptor.Get(parameter.Key);
 
-					string text = $"{desc.ShortTitle} = {parameter.Value:f2}";
+					string text = $"{desc.ShortTitle} = {parameter.Value.Value:f2}";
 
 					sb.AppendLine(text);
 				}
