@@ -15,15 +15,4 @@ namespace LersBot
 			this.Text = command;
 		}
 	}
-
-	class StartCommandContext : CommandContext
-	{
-		public StartCommandContext(string command) : base(command)
-		{
-		}
-
-		public string Login;
-
-		public string Password;
-	}
 }
