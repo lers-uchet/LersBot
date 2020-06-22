@@ -13,8 +13,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lers", "Lers", "{7E94E6C6-1
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lers.Utils", "..\LersUchet\LersCore\Lers.Utils\Lers.Utils.csproj", "{57F3B346-3E93-438F-864F-87562C65EF68}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lers.Core", "..\LersUchet\LersCore\Lers.Core\Lers.Core.csproj", "{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -96,31 +94,12 @@ Global
 		{57F3B346-3E93-438F-864F-87562C65EF68}.Release|x64.Build.0 = Release|Any CPU
 		{57F3B346-3E93-438F-864F-87562C65EF68}.Release|x86.ActiveCfg = Release|Any CPU
 		{57F3B346-3E93-438F-864F-87562C65EF68}.Release|x86.Build.0 = Release|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Debug|x64.Build.0 = Debug|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Debug|x86.Build.0 = Debug|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Deploy|Any CPU.ActiveCfg = Deploy|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Deploy|Any CPU.Build.0 = Deploy|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Deploy|x64.ActiveCfg = Deploy|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Deploy|x64.Build.0 = Deploy|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Deploy|x86.ActiveCfg = Deploy|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Deploy|x86.Build.0 = Deploy|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Release|x64.ActiveCfg = Release|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Release|x64.Build.0 = Release|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Release|x86.ActiveCfg = Release|Any CPU
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{57F3B346-3E93-438F-864F-87562C65EF68} = {7E94E6C6-1E35-463F-B435-A50B4BB60D24}
-		{1C202441-A52C-4F6D-B1EB-0F45B3A514DE} = {7E94E6C6-1E35-463F-B435-A50B4BB60D24}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {568A397E-67E7-4EED-B682-40BABD909129}

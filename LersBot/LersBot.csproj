@@ -16,7 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\LersUchet\LersCore\Lers.Core\Lers.Core.csproj" />
     <ProjectReference Include="..\..\LersUchet\LersCore\Lers.Utils\Lers.Utils.csproj" />
   </ItemGroup>
 

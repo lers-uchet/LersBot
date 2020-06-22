@@ -7669,18 +7669,6 @@ namespace Lers.Rest
                             return objectResponse_.Object;
                         }
                         else
-                        if (status_ == "401") 
-                        {
-                            string responseText_ = ( response_.Content == null ) ? string.Empty : await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
-                            throw new LersException("Unauthorized", (int)response_.StatusCode, responseText_, headers_, null);
-                        }
-                        else
-                        if (status_ == "403") 
-                        {
-                            string responseText_ = ( response_.Content == null ) ? string.Empty : await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
-                            throw new LersException("Forbidden", (int)response_.StatusCode, responseText_, headers_, null);
-                        }
-                        else
                         if (status_ != "200" && status_ != "204")
                         {
                             var responseData_ = response_.Content == null ? null : await response_.Content.ReadAsStringAsync().ConfigureAwait(false); 
@@ -7748,18 +7736,6 @@ namespace Lers.Rest
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<EnumDescriptors>(response_, headers_).ConfigureAwait(false);
                             return objectResponse_.Object;
-                        }
-                        else
-                        if (status_ == "401") 
-                        {
-                            string responseText_ = ( response_.Content == null ) ? string.Empty : await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
-                            throw new LersException("Unauthorized", (int)response_.StatusCode, responseText_, headers_, null);
-                        }
-                        else
-                        if (status_ == "403") 
-                        {
-                            string responseText_ = ( response_.Content == null ) ? string.Empty : await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
-                            throw new LersException("Forbidden", (int)response_.StatusCode, responseText_, headers_, null);
                         }
                         else
                         if (status_ != "200" && status_ != "204")
@@ -44536,20 +44512,20 @@ namespace Lers.Rest
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "10.1.21.0 (Newtonsoft.Json v11.0.0.0)")]
     public enum SystemType
     {
-        [System.Runtime.Serialization.EnumMember(Value = @"None")]
-        None = 0,
-    
         [System.Runtime.Serialization.EnumMember(Value = @"Heat")]
-        Heat = 1,
+        Heat = 0,
     
         [System.Runtime.Serialization.EnumMember(Value = @"HotWater")]
-        HotWater = 2,
+        HotWater = 1,
     
         [System.Runtime.Serialization.EnumMember(Value = @"ColdWater")]
-        ColdWater = 3,
+        ColdWater = 2,
     
         [System.Runtime.Serialization.EnumMember(Value = @"Steam")]
-        Steam = 4,
+        Steam = 3,
+    
+        [System.Runtime.Serialization.EnumMember(Value = @"Sewage")]
+        Sewage = 4,
     
         [System.Runtime.Serialization.EnumMember(Value = @"Gas")]
         Gas = 5,
@@ -44557,11 +44533,11 @@ namespace Lers.Rest
         [System.Runtime.Serialization.EnumMember(Value = @"Electricity")]
         Electricity = 6,
     
-        [System.Runtime.Serialization.EnumMember(Value = @"Sewage")]
-        Sewage = 7,
-    
         [System.Runtime.Serialization.EnumMember(Value = @"Control")]
-        Control = 8,
+        Control = 7,
+    
+        [System.Runtime.Serialization.EnumMember(Value = @"None")]
+        None = 8,
     
     }
     
@@ -50899,7 +50875,7 @@ namespace Lers.Rest
         public Unit SystemUnit { get; set; }
     
         /// <summary>Возвращает наименование системной единицы измерения для этого параметра.</summary>
-        [Newtonsoft.Json.JsonProperty("systemUnitTitle", Required = Newtonsoft.Json.Required.DisallowNull, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        [Newtonsoft.Json.JsonProperty("systemUnitTitle", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string SystemUnitTitle { get; set; }
     
         /// <summary>Возвращает значение, определяющее, является ли данный параметр одним из времен наработки (категория Time).</summary>

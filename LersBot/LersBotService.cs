@@ -1,18 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Data;
-using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Lers.Data;
 using Lers.Utils;
 using LersBot.Bot.Core;
-/*using Lers;
-using Lers.Core;
-using Lers.Data;*/
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
@@ -30,6 +25,12 @@ namespace LersBot
 		private readonly IHostApplicationLifetime _lifeTime;
 		private readonly UsersService _users;
 		private readonly Config _config;
+
+		/// <summary>
+		/// Описатели параметров сервера.
+		/// </summary>
+		private Dictionary<Lers.Rest.DataParameter, Lers.Rest.DataParameterDescriptorDTO> _dataParameters;
+
 		private const string StartCommand = "/start";
 		private const string GetCurrentsCommand = "/getcurrents";
 		private const string GetNodesCommand = "/nodes";
@@ -60,7 +61,7 @@ namespace LersBot
 		/// <param name="user"></param>
 		/// <param name="arguments"></param>
 		[Authorize(false)]
-		private async Task HandleStart(User user, string[] arguments)
+		private async System.Threading.Tasks.Task HandleStart(User user, string[] arguments)
 		{
 			if (user.CommandContext == null)
 			{
@@ -94,14 +95,7 @@ namespace LersBot
 
 					// Создаём контекст пользователя ЛЭРС УЧЁТ.
 
-					var uriBuilder = new UriBuilder
-					{
-						Host = _config.LersServerAddress,
-						Port = _config.LersServerPort,
-						Scheme = "http"
-					};
-
-					user.Context = new LersContext(uriBuilder.Uri);
+					user.Context = new LersContext(GetServerUri());
 
 					try
 					{
@@ -125,7 +119,7 @@ namespace LersBot
 		}
 
 		
-		private async Task ShowCurrents(User user, string[] arguments)
+		private async System.Threading.Tasks.Task ShowCurrents(User user, string[] arguments)
 		{
 			if (user.Context == null)
 				throw new UnauthorizedCommandException(GetCurrentsCommand);
@@ -159,7 +153,7 @@ namespace LersBot
 
 			if (result.Result != Lers.Rest.PollManualStartResult.Success)
 			{
-				throw new BotException("Не удалось запустить опрос текущих. " + result.Result.GetDescription());
+				throw new BotException("Не удалось запустить опрос текущих. " + result.Result);
 			}
 
 			await _bot.SendText(chatId, "Запущен опрос");
@@ -199,11 +193,14 @@ namespace LersBot
 		/// <param name="record"></param>
 		private async Task SendCurrents(long chatId, Lers.Rest.MeasurePointDataConsumptionRecord record)
 		{
+			if (_dataParameters == null)
+				await LoadDescriptors();
+
 			var sb = new StringBuilder();
 
 			foreach (var parameter in record.DataParameters)
 			{
-				var desc = DataParameterDescriptor.Get((DataParameter)(int)parameter.DataParameter);
+				var desc = _dataParameters[parameter.DataParameter];
 
 				string text = $"{desc.ShortTitle} = {parameter.Value:f2}";
 
@@ -219,7 +216,7 @@ namespace LersBot
 		/// <param name="user"></param>
 		/// <param name="arguments"></param>
 		/// <returns></returns>
-		private async Task ShowNodes(User user, string[] arguments)
+		private async System.Threading.Tasks.Task ShowNodes(User user, string[] arguments)
 		{
 			if (user.Context == null)
 				throw new UnauthorizedCommandException(GetNodesCommand);
@@ -260,7 +257,7 @@ namespace LersBot
 			await SendListMessage(chatId, measurePoints.OrderBy(x => x.FullTitle, new NaturalSortComparer()), x => x.FullTitle);
 		}
 
-		private async Task SendListMessage<T>(long chatId, IEnumerable<T> list, Func<T, string> textSelector)
+		private async System.Threading.Tasks.Task SendListMessage<T>(long chatId, IEnumerable<T> list, Func<T, string> textSelector)
 		{
 			if (list == null)
 				throw new ArgumentNullException(nameof(list));
@@ -307,7 +304,7 @@ namespace LersBot
 		/// </summary>
 		/// <param name="user"></param>
 		/// <param name="args"></param>
-		private async Task SendSystemStateReport(User user, string[] args)
+		private async System.Threading.Tasks.Task SendSystemStateReport(User user, string[] args)
 		{
 			if (user.Context == null)
 				throw new UnauthorizedCommandException(SystemStateReport);
@@ -356,7 +353,7 @@ namespace LersBot
 		}
 
 		[Authorize(true)]
-		private async Task SendPortStatus(User user, string[] args)
+		private async System.Threading.Tasks.Task SendPortStatus(User user, string[] args)
 		{
 			var portsClient = new Lers.Rest.PollPortsClient(user.Context.BaseUri.ToString(),
 				user.Context.RestClient);
@@ -379,7 +376,7 @@ namespace LersBot
 		/// <param name="user"></param>
 		/// <param name="args"></param>
 		[Authorize(true)]
-		private async Task GetMyJobs(User user, string[] args)
+		private async System.Threading.Tasks.Task GetMyJobs(User user, string[] args)
 		{
 			if (user.Context == null)
 				throw new UnauthorizedCommandException(SystemStateReport);
@@ -439,7 +436,7 @@ namespace LersBot
 			await _bot.SendText(user.ChatId, sb.ToString());
 		}
 
-		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+		protected override async System.Threading.Tasks.Task ExecuteAsync(CancellationToken stoppingToken)
 		{
 			logger.Info($"\r\n==========================================\r\n"
 						+ "=== Загрузка бота Telegram для сервера ЛЭРС УЧЁТ...\r\n"
@@ -471,6 +468,31 @@ namespace LersBot
 
 				throw;
 			}
+		}
+
+		/// <summary>
+		/// Загружает статические дескрипторы с сервера.
+		/// </summary>
+		/// <returns></returns>
+		private async Task LoadDescriptors()
+		{
+			using var httpClient = new HttpClient();
+			var descriptorsClient = new Lers.Rest.DescriptorsClient(GetServerUri().ToString(), httpClient);
+
+			_dataParameters = (await descriptorsClient.GetListForDataParametersAsync())
+				.ToDictionary(x => x.DataParameter);
+		}
+
+		private Uri GetServerUri()
+		{
+			var uriBuilder = new UriBuilder
+			{
+				Host = _config.LersServerAddress,
+				Port = _config.LersServerPort,
+				Scheme = "http"
+			};
+
+			return uriBuilder.Uri;
 		}
 	}
 }
