@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Lers.Data;
 using Lers.Utils;
 using LersBot.Bot.Core;
 /*using Lers;
@@ -146,76 +147,69 @@ namespace LersBot
 
 			await _bot.SendText(chatId, $"Точка учёта {measurePoint.FullTitle}");
 
-			await manualPollClient.PollArchiveAsync(DateTimeOffset.Now, DateTimeOffset.Now, new Lers.Rest.PollArchiveRequestParameters
+			var result = await manualPollClient.PollArchiveAsync(DateTimeOffset.Now, DateTimeOffset.Now, new Lers.Rest.PollArchiveRequestParameters
 			{
 				AbsentDataOnly = false,
 				RequestedDataMask = Lers.Rest.DeviceDataType.Current,
 				MeasurePoints = new int[] { measurePoint.Id },
 				StartMode = Lers.Rest.PollManualStartMode.Force
 			});
-			
-			/*
-			var options = new MeasurePointPollCurrentOptions { StartMode = Lers.Common.PollManualStartMode.Force };
 
-			int pollSessionId = measurePoint.PollCurrent(options);
-
-			bot.SendText(chatId, "Запущен опрос");
-
-			var autoResetEvent = new System.Threading.AutoResetEvent(false);
-
-			EventHandler<MeasurePointConsumptionEventArgs> handler = (sender, e) =>
+			if (result.Result != Lers.Rest.PollManualStartResult.Success)
 			{
-				try
-				{
-					SendCurrents(chatId, e.Consumption);
-
-					autoResetEvent.Set();
-				}
-				catch (Exception exc)
-				{
-					bot.SendText(chatId, exc.Message);
-				}
-			};
-
-			MeasurePointData.CurrentsSaved += handler;
-
-			MeasurePointData.SubscribeSaveCurrents(server, pollSessionId);
-
-			if (!autoResetEvent.WaitOne(120000))
-			{
-				bot.SendText(chatId, "Не удалось получить текущие данные за 2 минуты.");
+				throw new BotException("Не удалось запустить опрос текущих. " + result.Result.GetDescription());
 			}
 
-			MeasurePointData.UnsubscribeSaveCurrents(server);
+			await _bot.SendText(chatId, "Запущен опрос");
 
-			MeasurePointData.CurrentsSaved -= handler;*/
+			var tcs = new TaskCompletionSource<bool>();
+
+			// Подписываемся на событие о чтении текущих.
+
+			await using var hubClient = new NotificationsClient(user.Context.BaseUri + "api/v0.1/rpc/serverHub", 
+				user.Context.Token);
+
+			await hubClient.Connect();
+
+			using var subscription = hubClient.Subscribe<Lers.Rest.CurrentConsumptionDataRead>(Lers.Rest.Operation.SAVE_CURRENT_DATA,
+				Lers.Rest.EntityType.PollSession,
+				result.PollSessionId,
+				data =>
+				{
+					SendCurrents(chatId, data.Consumption);
+					tcs.SetResult(true);
+				});
+
+			var timeoutTask = Task.Delay(TimeSpan.FromMinutes(2));
+
+			var completed = await Task.WhenAny(tcs.Task, timeoutTask);
+
+			if (completed == timeoutTask)
+			{
+				throw new BotException("Не удалось считать текущие данные за 2 минуты");
+			}
 		}
 
-		/*
-		
 		/// <summary>
 		/// Отправляет список полученных текущих данных.
 		/// </summary>
 		/// <param name="chatId"></param>
 		/// <param name="record"></param>
-		private void SendCurrents(long chatId, MeasurePointConsumptionRecord record)
+		private async Task SendCurrents(long chatId, Lers.Rest.MeasurePointDataConsumptionRecord record)
 		{
 			var sb = new StringBuilder();
 
-			foreach (var parameter in record)
+			foreach (var parameter in record.DataParameters)
 			{
-				if (parameter.Value != null)
-				{
-					var desc = DataParameterDescriptor.Get(parameter.Key);
+				var desc = DataParameterDescriptor.Get((DataParameter)(int)parameter.DataParameter);
 
-					string text = $"{desc.ShortTitle} = {parameter.Value.Value:f2}";
+				string text = $"{desc.ShortTitle} = {parameter.Value:f2}";
 
-					sb.AppendLine(text);
-				}
+				sb.AppendLine(text);
 			}
 
-			bot.SendText(chatId, System.Web.HttpUtility.HtmlEncode(sb.ToString()));
-		}*/
+			await _bot.SendText(chatId, System.Web.HttpUtility.HtmlEncode(sb.ToString()));
+		}
 
 		/// <summary>
 		/// Отправляет список объектов учёта.
