@@ -41,6 +41,7 @@ namespace LersBot
 				services.Configure<Config>(hostContext.Configuration);
 				services.AddSingleton<UsersService>();
 				services.AddSingleton<LersBot>();
+				services.AddSingleton<Notifier>();
 				services.AddHostedService<LersBotService>();
 			});
 

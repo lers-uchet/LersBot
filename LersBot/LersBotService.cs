@@ -26,7 +26,7 @@ namespace LersBot
 		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
 		private readonly LersBot _bot;
-		private readonly Notifier notifier;
+		private readonly Notifier _notifier;
 		private readonly IHostApplicationLifetime _lifeTime;
 		private readonly UsersService _users;
 		private readonly Config _config;
@@ -43,12 +43,14 @@ namespace LersBot
 		public LersBotService(IHostApplicationLifetime lifeTime,
 			UsersService users,
 			IOptionsSnapshot<Config> config,
-			LersBot bot)
+			LersBot bot,
+			Notifier notifier)
 		{
 			_bot = bot;
 			_lifeTime = lifeTime;
 			_users = users;
 			_config = config.Value;
+			_notifier = notifier;
 		}
 
 
@@ -174,9 +176,9 @@ namespace LersBot
 			using var subscription = hubClient.Subscribe<Lers.Rest.CurrentConsumptionDataRead>(Lers.Rest.Operation.SAVE_CURRENT_DATA,
 				Lers.Rest.EntityType.PollSession,
 				result.PollSessionId,
-				data =>
+				async (data) =>
 				{
-					SendCurrents(chatId, data.Consumption);
+					await SendCurrents(chatId, data.Consumption);
 					tcs.SetResult(true);
 				});
 
@@ -443,34 +445,25 @@ namespace LersBot
 						+ "=== Загрузка бота Telegram для сервера ЛЭРС УЧЁТ...\r\n"
 						+ "========================================== ");
 
-			_lifeTime.ApplicationStopping.Register(() =>
-			{
-				/*notifier.Stop();*/
+			_lifeTime.ApplicationStopping.Register(() => logger.Info("Bot stopped."));
 
-				logger.Info("Bot stopped.");
-			});
-
-			
 			try
 			{
-				/*notifier = new Notifier(bot);
-				*/
-
 				logger.Info($"Starting bot.");
 
 				_bot.AddCommandHandler(HandleStart, StartCommand);
 				_bot.AddCommandHandler(ShowCurrents, GetCurrentsCommand);
 				_bot.AddCommandHandler(ShowNodes, GetNodesCommand);
-				_bot.AddCommandHandler(ShowMeasurePoints, GetMeasurePointsCommand);/*
-				bot.AddCommandHandler(notifier.ProcessSetNotifyOn, SetNotifyOnCommand);
-				bot.AddCommandHandler(notifier.ProcessSetNotifyOff, SetNotifyOffCommand);*/
+				_bot.AddCommandHandler(ShowMeasurePoints, GetMeasurePointsCommand);
+				_bot.AddCommandHandler(_notifier.ProcessSetNotifyOn, SetNotifyOnCommand);
+				_bot.AddCommandHandler(_notifier.ProcessSetNotifyOff, SetNotifyOffCommand);
 				_bot.AddCommandHandler(SendSystemStateReport, SystemStateReport);
 				_bot.AddCommandHandler(SendPortStatus, PortStatus);
 				_bot.AddCommandHandler(GetMyJobs, GetMyJobsCommand);
 				
 				await _bot.Start();
 
-				/*notifier.Start();*/
+				await _notifier.Start(stoppingToken);
 			}
 			catch (Exception exc)
 			{
