@@ -3,24 +3,28 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
-using System.ServiceProcess;
 using System.Text;
-using Lers;
+using System.Threading;
+using System.Threading.Tasks;
+using LersBot.Bot.Core;
+/*using Lers;
 using Lers.Core;
-using Lers.Data;
+using Lers.Data;*/
+using Microsoft.Extensions.Hosting;
 
 namespace LersBot
 {
 	/// <summary>
 	/// Windows-служба бота LersBot.
 	/// </summary>
-	partial class LersBotService : ServiceBase
+	public class LersBotService : BackgroundService
 	{
 		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-		private LersBot bot;
-
-		private Notifier notifier;
+		private readonly LersBot bot;
+		private readonly Notifier notifier;
+		private readonly IHostApplicationLifetime _lifeTime;
+		private readonly UsersService _users;
 
 		private const string StartCommand = "/start";
 		private const string GetCurrentsCommand = "/getcurrents";
@@ -32,74 +36,13 @@ namespace LersBot
 		public const string PortStatus = "/portstatus";
 		public const string GetMyJobsCommand = "/getmyjobs";
 
-		public LersBotService()
+		public LersBotService(IHostApplicationLifetime lifeTime,
+			UsersService users)
 		{
-			InitializeComponent();
+			_lifeTime = lifeTime;
+			_users = users;
 		}
 
-		public void Start()
-		{
-			OnStart(null);
-		}
-
-		public void MyStop()
-		{
-			OnStop();
-		}
-
-		/// <summary>
-		/// Вызывается при запуске службы.
-		/// </summary>
-		/// <param name="args"></param>
-		protected override void OnStart(string[] args)
-		{
-			logger.Info(
-				$"\r\n==========================================\r\n"
-				+ "=== Загрузка бота Telegram для сервера ЛЭРС УЧЁТ...\r\n"
-				+ "========================================== ");
-
-			try
-			{
-				Config.Load();
-				User.LoadList();
-
-				bot = new LersBot();
-
-				notifier = new Notifier(bot);
-
-				logger.Info($"Starting {bot.UserName}");
-
-				bot.AddCommandHandler(HandleStart, StartCommand);
-				bot.AddCommandHandler(ShowCurrents, GetCurrentsCommand);
-				bot.AddCommandHandler(ShowNodes, GetNodesCommand);
-				bot.AddCommandHandler(ShowMeasurePoints, GetMeasurePointsCommand);
-				bot.AddCommandHandler(notifier.ProcessSetNotifyOn, SetNotifyOnCommand);
-				bot.AddCommandHandler(notifier.ProcessSetNotifyOff, SetNotifyOffCommand);
-				bot.AddCommandHandler(SendSystemStateReport, SystemStateReport);
-				bot.AddCommandHandler(SendPortStatus, PortStatus);
-				bot.AddCommandHandler(GetMyJobs, GetMyJobsCommand);
-
-				bot.Start();
-
-				notifier.Start();
-			}
-			catch (Exception exc)
-			{
-				logger.Info(exc, "Ошибка запуска бота.");
-
-				throw;
-			}
-		}
-
-		/// <summary>
-		/// Вызывается при остановке службы.
-		/// </summary>
-		protected override void OnStop()
-		{
-			notifier.Stop();
-
-			logger.Info($"Stopped {bot.UserName}");
-		}
 
 		/// <summary>
 		/// Обрабатывает команду начала сеанса работы пользователя с ботом.
@@ -158,10 +101,11 @@ namespace LersBot
 					}
 				}
 
-				User.Save();
+				_users.Save();
 			}
 		}
 
+		/*
 		private void ShowCurrents(User user, string[] arguments)
 		{
 			if (user.Context == null)
@@ -216,6 +160,7 @@ namespace LersBot
 			MeasurePointData.CurrentsSaved -= handler;
 		}
 
+		
 		/// <summary>
 		/// Отправляет список полученных текущих данных.
 		/// </summary>
@@ -238,11 +183,11 @@ namespace LersBot
 			}
 
 			bot.SendText(chatId, System.Web.HttpUtility.HtmlEncode(sb.ToString()));
-		}
+		}*/
 
 		private void ShowNodes(User user, string[] arguments)
 		{
-			if (user.Context == null)
+			/*if (user.Context == null)
 				throw new UnauthorizedCommandException(GetNodesCommand);
 
 			var nodes = user.Context.Server.GetNodes(arguments);
@@ -266,12 +211,12 @@ namespace LersBot
 				{
 					logger.Error(e.Message);
 				}
-			}
+			}*/
 		}
 
 		private void ShowMeasurePoints(User user, string[] arguments)
 		{
-			if (user.Context == null)
+			/*if (user.Context == null)
 				throw new UnauthorizedCommandException(GetMeasurePointsCommand);
 
 			var measurePoints = user.Context.Server.GetMeasurePoints(arguments);
@@ -296,12 +241,12 @@ namespace LersBot
 				{
 					logger.Error(e.Message);
 				}
-			}
+			}*/
 		}
 
 		private void SendListMessage<T>(long chatId, IEnumerable<T> list, Func<T, string> textSelector)
 		{
-			if (list == null)
+			/*if (list == null)
 				throw new ArgumentNullException(nameof(list));
 
 			if (!list.Any())
@@ -338,7 +283,7 @@ namespace LersBot
 
 			// Отправляем оставшийся текст или весь текст, если длина не была превышена.
 
-			bot.SendText(chatId, sb.ToString());
+			bot.SendText(chatId, sb.ToString());*/
 		}
 
 		/// <summary>
@@ -348,7 +293,7 @@ namespace LersBot
 		/// <param name="args"></param>
 		private void SendSystemStateReport(User user, string[] args)
 		{
-			if (user.Context == null)
+			/*if (user.Context == null)
 				throw new UnauthorizedCommandException(SystemStateReport);
 
 			var reportManager = new Lers.Reports.ReportManager(user.Context.Server);
@@ -371,13 +316,13 @@ namespace LersBot
 				preparedReport.ExportToPdf(stream);
 
 				bot.SendDocument(user.ChatId, stream, $"Отчёт о состоянии системы от {DateTime.Now}", "SystemStateReport.pdf");
-			}
+			}*/
 		}
 
 		[Authorize(true)]
 		private void SendPortStatus(User user, string[] args)
 		{
-			var status = user.Context.Server.PollPorts.GetPortStatus();
+			/*var status = user.Context.Server.PollPorts.GetPortStatus();
 
 			var sb = new StringBuilder();
 			sb.AppendLine($"Служб опроса: {status.PollServices}");
@@ -386,7 +331,7 @@ namespace LersBot
 			sb.AppendLine($"Свободных портов: {status.Free}");
 			sb.AppendLine($"Заблокированных портов: {status.Blocked}");
 
-			bot.SendText(user.ChatId, sb.ToString());
+			bot.SendText(user.ChatId, sb.ToString());*/
 		}
 
 		/// <summary>
@@ -397,7 +342,7 @@ namespace LersBot
 		[Authorize(true)]
 		private void GetMyJobs(User user, string[] args)
 		{
-			if (user.Context == null)
+			/*if (user.Context == null)
 				throw new UnauthorizedCommandException(SystemStateReport);
 
 			var server = user.Context.Server;
@@ -453,7 +398,56 @@ namespace LersBot
 				sb.AppendLine("Нет невыполненных работ.");
 			}
 
-			bot.SendText(user.ChatId, sb.ToString());
+			bot.SendText(user.ChatId, sb.ToString());*/
+		}
+
+		protected override Task ExecuteAsync(CancellationToken stoppingToken)
+		{
+			logger.Info($"\r\n==========================================\r\n"
+						+ "=== Загрузка бота Telegram для сервера ЛЭРС УЧЁТ...\r\n"
+						+ "========================================== ");
+
+			_lifeTime.ApplicationStopping.Register(() =>
+			{
+				/*notifier.Stop();*/
+
+				/*logger.Info($"Stopped {bot.UserName}");*/
+			});
+
+			/*
+			try
+			{
+				Config.Load();
+				User.LoadList();
+
+				bot = new LersBot();
+
+				notifier = new Notifier(bot);
+
+				logger.Info($"Starting {bot.UserName}");
+
+				bot.AddCommandHandler(HandleStart, StartCommand);
+				bot.AddCommandHandler(ShowCurrents, GetCurrentsCommand);
+				bot.AddCommandHandler(ShowNodes, GetNodesCommand);
+				bot.AddCommandHandler(ShowMeasurePoints, GetMeasurePointsCommand);
+				bot.AddCommandHandler(notifier.ProcessSetNotifyOn, SetNotifyOnCommand);
+				bot.AddCommandHandler(notifier.ProcessSetNotifyOff, SetNotifyOffCommand);
+				bot.AddCommandHandler(SendSystemStateReport, SystemStateReport);
+				bot.AddCommandHandler(SendPortStatus, PortStatus);
+				bot.AddCommandHandler(GetMyJobs, GetMyJobsCommand);
+
+				bot.Start();
+
+				notifier.Start();
+			}
+			catch (Exception exc)
+			{
+				logger.Info(exc, "Ошибка запуска бота.");
+
+				throw;
+			}*/
+
+			return Task.CompletedTask;
 		}
 	}
 }

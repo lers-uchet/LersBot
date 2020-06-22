@@ -1,8 +1,11 @@
-﻿using System;
+﻿using LersBot.Bot.Core;
+using Microsoft.Extensions.Options;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Telegram.Bot;
 
 namespace LersBot
 {
@@ -13,41 +16,47 @@ namespace LersBot
 	/// </summary>
 	class LersBot
 	{
-		private Telegram.Bot.TelegramBotClient bot;
-
+		private readonly Telegram.Bot.TelegramBotClient _bot;
+		private readonly UsersService _users;
 		private Dictionary<string, CommandHandler> commandHandlers = new Dictionary<string, CommandHandler>();
 
 		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
 
-		public string UserName => this.bot.GetMeAsync().Result.Username;
+		public async Task<string> GetUserName() => (await _bot.GetMeAsync()).Username;
 
-		public LersBot()
+		
+		public LersBot(IOptionsSnapshot<Config> optionsSnapshot, UsersService users)
 		{
-			this.bot = new Telegram.Bot.TelegramBotClient(Config.Instance.Token);
+			var options = optionsSnapshot.Value;
 
-			this.bot.OnMessage += Bot_OnMessage;
+			_bot = new TelegramBotClient(options.Token);
+			_users = users;
 		}
 
+		
 		/// <summary>
 		/// Запускает бота.
 		/// </summary>
 		internal void Start()
 		{
-			// Инициируем подключения к серверу
+			_bot.OnMessage += Bot_OnMessage;
 
+			// Инициируем подключения к серверу
+			/*
 			foreach (var user in User.Where(x => x.Context != null))
 			{
 				user.Connect();
-			}
+			}*/
 
-			this.bot.StartReceiving();
+			_bot.StartReceiving();
 		}
 
-		private void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
+		
+		private async void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
 		{
 			// Обрабатываем только текстовые сообщения.
-			if (e.Message.Type != Telegram.Bot.Types.Enums.MessageType.TextMessage)
+			if (e.Message.Type != Telegram.Bot.Types.Enums.MessageType.Text)
 			{
 				return;
 			}
@@ -58,7 +67,7 @@ namespace LersBot
 
 			try
 			{
-				var user = User.Where(u => u.TelegramUserId == e.Message.From.Id).FirstOrDefault();
+				var user = _users.Where(u => u.TelegramUserId == e.Message.From.Id).FirstOrDefault();
 
 				if (user == null)
 				{
@@ -68,7 +77,7 @@ namespace LersBot
 						TelegramUserId = e.Message.From.Id
 					};
 
-					User.Add(user);
+					_users.Add(user);
 				}
 
 				// Обрабатываем команду.
@@ -78,13 +87,13 @@ namespace LersBot
 			{
 				var message = $"Ошибка обработки команды. {exc.Message}";
 
-				bot.SendTextMessageAsync(chatId, message);
+				await _bot.SendTextMessageAsync(chatId, message);
 
 				logger.Error(message);
 			}
 		}
 
-
+		
 		private void ProcessCommand(User user, string text)
 		{
 			// Разделяем сообщение на аргументы.
@@ -102,7 +111,7 @@ namespace LersBot
 			CommandHandler handler;
 
 			// Пользователь может уже обрабатывать команду. В этом случае передадим в качестве
-			// текста команды выполняющуся команду, а в качестве аргументов весь текст сообщения.
+			// текста команды выполняющуюся команду, а в качестве аргументов весь текст сообщения.
 
 			if (user.CommandContext != null)
 			{
@@ -155,17 +164,17 @@ namespace LersBot
 		{
 			try
 			{
-				await this.bot.SendTextMessageAsync(chatId, message);
+				await _bot.SendTextMessageAsync(chatId, message);
 			}
 			catch (Telegram.Bot.Exceptions.ApiRequestException exc) when (exc.ErrorCode == 403)
 			{
-				var user = User.FirstOrDefault(x => x.ChatId == chatId);
+				var user = _users.FirstOrDefault(x => x.ChatId == chatId);
 
 				if (user != null)
 				{
 					logger.Error($"Пользователь {user.Context.Login} запретил боту отправлять сообщения. Пользователь удаляется из списка.");
 
-					User.Remove(user);
+					_users.Remove(user);
 				}
 			}
 		}
@@ -178,16 +187,13 @@ namespace LersBot
 			}
 		}
 
-		internal void SendDocument(long chatId, MemoryStream stream, string caption, string fileName)
+		internal async Task SendDocument(long chatId, MemoryStream stream, string caption, string fileName)
 		{
 			stream.Seek(0, SeekOrigin.Begin);
 
-			var document = default(Telegram.Bot.Types.FileToSend);
+			var document = new Telegram.Bot.Types.InputFiles.InputOnlineFile(stream, fileName);
 
-			document.Content = stream;
-			document.Filename = fileName;
-
-			bot.SendDocumentAsync(chatId, document, caption).Wait();
+			await _bot.SendDocumentAsync(chatId, document, caption);
 		}
 
 		private static bool IsAuthorizeRequired(CommandHandler handler)

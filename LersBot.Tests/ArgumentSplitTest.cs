@@ -1,8 +1,7 @@
-﻿using NUnit.Framework;
-
+﻿
 namespace LersBot.Tests
 {
-	/// <summary>
+	/*/// <summary>
 	/// Содержит тесты блока разделения аргументов.
 	/// </summary>
 	public class ArgumentSplitTest
@@ -115,5 +114,5 @@ namespace LersBot.Tests
 			Assert.AreEqual("one", result[0]);
 			Assert.AreEqual("two three four", result[1]);
 		}
-	}
+	}*/
 }

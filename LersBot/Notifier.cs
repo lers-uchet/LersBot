@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Lers.Administration;
+/*using Lers.Administration;*/
 
 namespace LersBot
 {
@@ -12,7 +12,7 @@ namespace LersBot
 	/// </summary>
 	class Notifier
 	{
-		private LersBot bot;
+		/*private LersBot bot;
 
 		private BackgroundWorker notifyThread = new BackgroundWorker();
 
@@ -180,6 +180,6 @@ namespace LersBot
 			bot.SendText(user.ChatId, "Отправка уведомлений выключена.");
 
 			User.Save();
-		}
+		}*/
 	}
 }
