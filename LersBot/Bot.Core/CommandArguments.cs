@@ -30,13 +30,8 @@ namespace LersBot
 		}
 
 
-		private ParseState _state;
-
-		private readonly string input;
-
-		public CommandArguments(string input)
+		public CommandArguments()
 		{
-			this.input = input;
 		}
 
 		/// <summary>
@@ -45,7 +40,7 @@ namespace LersBot
 		/// <param name="input"></param>
 		/// <returns></returns>
 		/// <remarks>
-		/// Строка разделяется на агрументы пробелами.
+		/// Строка разделяется на аргументы пробелами.
 		/// </remarks>
 		public static string[] Split(string input)
 		{
@@ -135,7 +130,7 @@ namespace LersBot
 					return ParseState.Split;
 
 				case ParseState.Argument:
-					// Если мы в режиме разбора аргумента, передём к разбору кавычек.
+					// Если мы в режиме разбора аргумента, перейдём к разбору кавычек.
 					return ParseState.Quote;
 
 				default:

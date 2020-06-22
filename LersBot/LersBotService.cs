@@ -1,26 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.IO;
 using System.Linq;
-using System.ServiceProcess;
+using System.Net.Http;
 using System.Text;
-using Lers;
-using Lers.Core;
-using Lers.Data;
+using System.Threading;
+using System.Threading.Tasks;
+using Lers.Utils;
+using LersBot.Bot.Core;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace LersBot
 {
 	/// <summary>
 	/// Windows-служба бота LersBot.
 	/// </summary>
-	partial class LersBotService : ServiceBase
+	public class LersBotService : BackgroundService
 	{
 		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-		private LersBot bot;
+		private readonly LersBot _bot;
+		private readonly Notifier _notifier;
+		private readonly IHostApplicationLifetime _lifeTime;
+		private readonly UsersService _users;
+		private readonly Config _config;
 
-		private Notifier notifier;
+		/// <summary>
+		/// Описатели параметров сервера.
+		/// </summary>
+		private Dictionary<Lers.Rest.DataParameter, Lers.Rest.DataParameterDescriptorDTO> _dataParameters;
 
 		private const string StartCommand = "/start";
 		private const string GetCurrentsCommand = "/getcurrents";
@@ -32,74 +41,19 @@ namespace LersBot
 		public const string PortStatus = "/portstatus";
 		public const string GetMyJobsCommand = "/getmyjobs";
 
-		public LersBotService()
+		public LersBotService(IHostApplicationLifetime lifeTime,
+			UsersService users,
+			IOptionsSnapshot<Config> config,
+			LersBot bot,
+			Notifier notifier)
 		{
-			InitializeComponent();
+			_bot = bot;
+			_lifeTime = lifeTime;
+			_users = users;
+			_config = config.Value;
+			_notifier = notifier;
 		}
 
-		public void Start()
-		{
-			OnStart(null);
-		}
-
-		public void MyStop()
-		{
-			OnStop();
-		}
-
-		/// <summary>
-		/// Вызывается при запуске службы.
-		/// </summary>
-		/// <param name="args"></param>
-		protected override void OnStart(string[] args)
-		{
-			logger.Info(
-				$"\r\n==========================================\r\n"
-				+ "=== Загрузка бота Telegram для сервера ЛЭРС УЧЁТ...\r\n"
-				+ "========================================== ");
-
-			try
-			{
-				Config.Load();
-				User.LoadList();
-
-				bot = new LersBot();
-
-				notifier = new Notifier(bot);
-
-				logger.Info($"Starting {bot.UserName}");
-
-				bot.AddCommandHandler(HandleStart, StartCommand);
-				bot.AddCommandHandler(ShowCurrents, GetCurrentsCommand);
-				bot.AddCommandHandler(ShowNodes, GetNodesCommand);
-				bot.AddCommandHandler(ShowMeasurePoints, GetMeasurePointsCommand);
-				bot.AddCommandHandler(notifier.ProcessSetNotifyOn, SetNotifyOnCommand);
-				bot.AddCommandHandler(notifier.ProcessSetNotifyOff, SetNotifyOffCommand);
-				bot.AddCommandHandler(SendSystemStateReport, SystemStateReport);
-				bot.AddCommandHandler(SendPortStatus, PortStatus);
-				bot.AddCommandHandler(GetMyJobs, GetMyJobsCommand);
-
-				bot.Start();
-
-				notifier.Start();
-			}
-			catch (Exception exc)
-			{
-				logger.Info(exc, "Ошибка запуска бота.");
-
-				throw;
-			}
-		}
-
-		/// <summary>
-		/// Вызывается при остановке службы.
-		/// </summary>
-		protected override void OnStop()
-		{
-			notifier.Stop();
-
-			logger.Info($"Stopped {bot.UserName}");
-		}
 
 		/// <summary>
 		/// Обрабатывает команду начала сеанса работы пользователя с ботом.
@@ -107,7 +61,7 @@ namespace LersBot
 		/// <param name="user"></param>
 		/// <param name="arguments"></param>
 		[Authorize(false)]
-		private void HandleStart(User user, string[] arguments)
+		private async System.Threading.Tasks.Task HandleStart(User user, string[] arguments)
 		{
 			if (user.CommandContext == null)
 			{
@@ -115,7 +69,7 @@ namespace LersBot
 
 				user.CommandContext = new StartCommandContext(StartCommand);
 
-				bot.SendText(user.ChatId, "Введите логин на сервере ЛЭРС УЧЁТ.");
+				await _bot.SendText(user.ChatId, "Введите логин на сервере ЛЭРС УЧЁТ.");
 			}
 			else
 			{
@@ -129,7 +83,7 @@ namespace LersBot
 
 					context.Login = arguments[0];
 
-					bot.SendText(user.ChatId, "Введите пароль на сервере ЛЭРС УЧЁТ");
+					await _bot.SendText(user.ChatId, "Введите пароль на сервере ЛЭРС УЧЁТ");
 				}
 				else if (string.IsNullOrEmpty(context.Password))
 				{
@@ -141,79 +95,95 @@ namespace LersBot
 
 					// Создаём контекст пользователя ЛЭРС УЧЁТ.
 
-					user.Context = new LersContext { Login = context.Login, Password = context.Password };
+					user.Context = new LersContext(GetServerUri());
 
 					try
 					{
 						// Проверяем подключение и выводим приветствие.
 
-						user.Connect();
+						await user.Connect(context.Login, context.Password);
 
-						bot.SendText(user.ChatId, $"Добро пожаловать,  {user.Context.Server.Accounts.Current.DisplayName}");
+						await _bot.SendText(user.ChatId, $"Добро пожаловать,  {user.Current.DisplayName}");
 					}
-					catch
+					catch (Exception exc)
 					{
+						logger.Error(exc, "Ошибка подключения к серверу ЛЭРС УЧЁТ");
 						user.Context = null;
+						_users.Remove(user);
 						throw;
 					}
 				}
 
-				User.Save();
+				_users.Save();
 			}
 		}
 
-		private void ShowCurrents(User user, string[] arguments)
+		
+		private async System.Threading.Tasks.Task ShowCurrents(User user, string[] arguments)
 		{
 			if (user.Context == null)
 				throw new UnauthorizedCommandException(GetCurrentsCommand);
 
-			LersServer server = user.Context.Server;
+			var measurePointsClient = new Lers.Rest.MeasurePointsClient(user.Context.BaseUri.ToString(),
+				user.Context.RestClient);
+
+			var manualPollClient = new Lers.Rest.ManualPollClient(user.Context.BaseUri.ToString(),
+				user.Context.RestClient);			
+
 			long chatId = user.ChatId;
 
-			var measurePoint = server.GetMeasurePoints(arguments).FirstOrDefault();
+			var measurePoint = (await measurePointsClient.GetMeasurePoints(arguments))
+				.FirstOrDefault();
 
 			if (measurePoint == null)
 			{
-				bot.SendText(chatId, "Точка учёта не найдена");
+				await _bot.SendText(chatId, "Точка учёта не найдена");
 				return;
 			}
 
-			bot.SendText(chatId, $"Точка учёта {measurePoint.FullTitle}");
+			await _bot.SendText(chatId, $"Точка учёта {measurePoint.FullTitle}");
 
-			var options = new MeasurePointPollCurrentOptions { StartMode = Lers.Common.PollManualStartMode.Force };
-
-			int pollSessionId = measurePoint.PollCurrent(options);
-
-			bot.SendText(chatId, "Запущен опрос");
-
-			var autoResetEvent = new System.Threading.AutoResetEvent(false);
-
-			EventHandler<MeasurePointConsumptionEventArgs> handler = (sender, e) =>
+			var result = await manualPollClient.PollArchiveAsync(DateTimeOffset.Now, DateTimeOffset.Now, new Lers.Rest.PollArchiveRequestParameters
 			{
-				try
-				{
-					SendCurrents(chatId, e.Consumption);
+				AbsentDataOnly = false,
+				RequestedDataMask = Lers.Rest.DeviceDataType.Current,
+				MeasurePoints = new int[] { measurePoint.Id },
+				StartMode = Lers.Rest.PollManualStartMode.Force
+			});
 
-					autoResetEvent.Set();
-				}
-				catch (Exception exc)
-				{
-					bot.SendText(chatId, exc.Message);
-				}
-			};
-
-			MeasurePointData.CurrentsSaved += handler;
-
-			MeasurePointData.SubscribeSaveCurrents(server, pollSessionId);
-
-			if (!autoResetEvent.WaitOne(120000))
+			if (result.Result != Lers.Rest.PollManualStartResult.Success)
 			{
-				bot.SendText(chatId, "Не удалось получить текущие данные за 2 минуты.");
+				throw new BotException("Не удалось запустить опрос текущих. " + result.Result);
 			}
 
-			MeasurePointData.UnsubscribeSaveCurrents(server);
+			await _bot.SendText(chatId, "Запущен опрос");
 
-			MeasurePointData.CurrentsSaved -= handler;
+			var tcs = new TaskCompletionSource<bool>();
+
+			// Подписываемся на событие о чтении текущих.
+
+			await using var hubClient = new NotificationsClient(user.Context.BaseUri + "api/v0.1/rpc/serverHub", 
+				user.Context.Token);
+
+			await hubClient.Connect();
+
+			using var subscription = hubClient.Subscribe<Lers.Rest.CurrentConsumptionDataRead>(Lers.Rest.Operation.SAVE_CURRENT_DATA,
+				Lers.Rest.EntityType.PollSession,
+				result.PollSessionId,
+				async (data) =>
+				{
+					await SendCurrents(chatId, data.Consumption);
+					tcs.SetResult(true);
+				});
+
+			var timeoutTask = Task.Delay(TimeSpan.FromMinutes(2));
+
+			var completed = await Task.WhenAny(tcs.Task, timeoutTask);
+
+			if (completed == timeoutTask)
+			{
+				throw new BotException("Не удалось считать текущие данные за 2 минуты");
+			}
 		}
 
 		/// <summary>
@@ -221,85 +191,73 @@ namespace LersBot
 		/// </summary>
 		/// <param name="chatId"></param>
 		/// <param name="record"></param>
-		private void SendCurrents(long chatId, MeasurePointConsumptionRecord record)
+		private async Task SendCurrents(long chatId, Lers.Rest.MeasurePointDataConsumptionRecord record)
 		{
+			if (_dataParameters == null)
+				await LoadDescriptors();
+
 			var sb = new StringBuilder();
 
-			foreach (var parameter in record)
+			foreach (var parameter in record.DataParameters)
 			{
-				if (parameter.Value != null)
-				{
-					var desc = DataParameterDescriptor.Get(parameter.Key);
+				var desc = _dataParameters[parameter.DataParameter];
 
-					string text = $"{desc.ShortTitle} = {parameter.Value.Value:f2}";
+				string text = $"{desc.ShortTitle} = {parameter.Value:f2}";
 
-					sb.AppendLine(text);
-				}
+				sb.AppendLine(text);
 			}
 
-			bot.SendText(chatId, System.Web.HttpUtility.HtmlEncode(sb.ToString()));
+			await _bot.SendText(chatId, System.Web.HttpUtility.HtmlEncode(sb.ToString()));
 		}
 
-		private void ShowNodes(User user, string[] arguments)
+		/// <summary>
+		/// Отправляет список объектов учёта.
+		/// </summary>
+		/// <param name="user"></param>
+		/// <param name="arguments"></param>
+		/// <returns></returns>
+		private async System.Threading.Tasks.Task ShowNodes(User user, string[] arguments)
 		{
 			if (user.Context == null)
 				throw new UnauthorizedCommandException(GetNodesCommand);
 
-			var nodes = user.Context.Server.GetNodes(arguments);
+			var client = new Lers.Rest.NodesClient(user.Context.BaseUri.ToString(), 
+				user.Context.RestClient);
+
+			var nodes = await client.GetNodes(arguments);
 
 			long chatId = user.ChatId;
 
 			if (!nodes.Any())
 			{
-				bot.SendText(chatId, "Ничего не найдено");
+				await _bot.SendText(chatId, "Ничего не найдено");
 				return;
 			}
 
-			try
-			{
-				var comparer = new Lers.Utils.NaturalSortComparer();
-				SendListMessage(chatId, nodes.OrderBy(x => x.Title, comparer), x => x.Title);
-			}
-			catch (AggregateException ae)
-			{
-				foreach (var e in ae.InnerExceptions)
-				{
-					logger.Error(e.Message);
-				}
-			}
+			var comparer = new NaturalSortComparer();
+			await SendListMessage(chatId, nodes.OrderBy(x => x.Title, comparer), x => x.Title);
 		}
 
-		private void ShowMeasurePoints(User user, string[] arguments)
+		private async Task ShowMeasurePoints(User user, string[] arguments)
 		{
 			if (user.Context == null)
 				throw new UnauthorizedCommandException(GetMeasurePointsCommand);
 
-			var measurePoints = user.Context.Server.GetMeasurePoints(arguments);
+			var client = new Lers.Rest.MeasurePointsClient(user.Context.BaseUri.ToString(), user.Context.RestClient);
+			var measurePoints = await client.GetMeasurePoints(arguments);
 
 			long chatId = user.ChatId;
 
 			if (!measurePoints.Any())
 			{
-				bot.SendText(chatId, "Ничего не найдено");
+				await _bot.SendText(chatId, "Ничего не найдено");
 				return;
 			}
 
-			try
-			{
-				var comparer = new Lers.Utils.NaturalSortComparer();
-
-				SendListMessage(chatId, measurePoints.OrderBy(x => x.FullTitle, comparer), x => x.FullTitle);
-			}
-			catch (AggregateException ae)
-			{
-				foreach (var e in ae.InnerExceptions)
-				{
-					logger.Error(e.Message);
-				}
-			}
+			await SendListMessage(chatId, measurePoints.OrderBy(x => x.FullTitle, new NaturalSortComparer()), x => x.FullTitle);
 		}
 
-		private void SendListMessage<T>(long chatId, IEnumerable<T> list, Func<T, string> textSelector)
+		private async System.Threading.Tasks.Task SendListMessage<T>(long chatId, IEnumerable<T> list, Func<T, string> textSelector)
 		{
 			if (list == null)
 				throw new ArgumentNullException(nameof(list));
@@ -315,7 +273,7 @@ namespace LersBot
 
 			// Отправляем список блоками, не превышающими максимальную длину.
 
-			StringBuilder sb = new StringBuilder(4096);
+			var sb = new StringBuilder(4096);
 
 			foreach (var item in list)
 			{
@@ -325,7 +283,7 @@ namespace LersBot
 				{
 					// Максимальная длина достигнута - отправляем сообщение.
 
-					bot.SendText(chatId, sb.ToString());
+					await _bot.SendText(chatId, sb.ToString());
 
 					sb.Clear();
 					sb.Append(textSelector(item));
@@ -338,7 +296,7 @@ namespace LersBot
 
 			// Отправляем оставшийся текст или весь текст, если длина не была превышена.
 
-			bot.SendText(chatId, sb.ToString());
+			await _bot.SendText(chatId, sb.ToString());
 		}
 
 		/// <summary>
@@ -346,38 +304,61 @@ namespace LersBot
 		/// </summary>
 		/// <param name="user"></param>
 		/// <param name="args"></param>
-		private void SendSystemStateReport(User user, string[] args)
+		private async System.Threading.Tasks.Task SendSystemStateReport(User user, string[] args)
 		{
 			if (user.Context == null)
 				throw new UnauthorizedCommandException(SystemStateReport);
 
-			var reportManager = new Lers.Reports.ReportManager(user.Context.Server);
+			var reportsClient = new Lers.Rest.ReportsClient(user.Context.BaseUri.ToString(),
+				user.Context.RestClient);
+
+			var generateClient = new Lers.Rest.GenerateClient(user.Context.BaseUri.ToString(),
+				user.Context.RestClient);
 
 			// Получим системный отчёт о состоянии системы
-			var report = reportManager.GetReportListAllowed().Where(r => r.Type == Lers.Reports.ReportType.SystemState && r.IsSystem).FirstOrDefault();
+			var report = (await reportsClient.GetReportsAsync(Lers.Rest.ReportType.SystemState, null))
+				.FirstOrDefault();
 
 			if (report == null)
 			{
 				throw new BotException("Отчёт о состоянии системы не найден на сервере");
 			}
 
-			// Формируем отчёт
-			var preparedReport = reportManager.GenerateSystemStateReport(report.Id);
-
-			using (var stream = new MemoryStream(1024 * 1024))
+			// Формируем отчёт.
+			var generated = await generateClient.GenerateExportedAsync(report.Id, false, new Lers.Rest.GenerateExportedReportRequestParameters
 			{
-				// Экспортируем отчёт в PDF и отправляем пользователю.
+				GenerateOptions = new Lers.Rest.BaseGenerateReportRequestParameters
+				{
+					StartDate = DateTime.Today,
+					EndDate = DateTime.Today
+				},
+				ExportOptions = new Lers.Rest.ExportOptions
+				{
+					ExportFormat = Lers.Rest.ReportExportFormat.Pdf
+				}
+			});
 
-				preparedReport.ExportToPdf(stream);
+			// Формируем ссылку для загрузки и качаем документ.
+			
+			var file = await user.Context.RestClient.GetAsync($"api/v0.1/downloads/{generated.DownloadKey}");
 
-				bot.SendDocument(user.ChatId, stream, $"Отчёт о состоянии системы от {DateTime.Now}", "SystemStateReport.pdf");
+			if (!file.IsSuccessStatusCode)
+			{
+				throw new BotException("Не удалось загрузить сформированный отчёт. " + file.ReasonPhrase);
 			}
+
+			using var contentStream = await file.Content.ReadAsStreamAsync();
+
+			await _bot.SendDocument(user.ChatId, contentStream, generated.FileName, $"Отчёт о состоянии системы от {DateTime.Now}");
 		}
 
 		[Authorize(true)]
-		private void SendPortStatus(User user, string[] args)
+		private async System.Threading.Tasks.Task SendPortStatus(User user, string[] args)
 		{
-			var status = user.Context.Server.PollPorts.GetPortStatus();
+			var portsClient = new Lers.Rest.PollPortsClient(user.Context.BaseUri.ToString(),
+				user.Context.RestClient);
+
+			var status = await portsClient.GetStatusAsync();
 
 			var sb = new StringBuilder();
 			sb.AppendLine($"Служб опроса: {status.PollServices}");
@@ -386,7 +367,7 @@ namespace LersBot
 			sb.AppendLine($"Свободных портов: {status.Free}");
 			sb.AppendLine($"Заблокированных портов: {status.Blocked}");
 
-			bot.SendText(user.ChatId, sb.ToString());
+			await _bot.SendText(user.ChatId, sb.ToString());
 		}
 
 		/// <summary>
@@ -395,28 +376,27 @@ namespace LersBot
 		/// <param name="user"></param>
 		/// <param name="args"></param>
 		[Authorize(true)]
-		private void GetMyJobs(User user, string[] args)
+		private async System.Threading.Tasks.Task GetMyJobs(User user, string[] args)
 		{
 			if (user.Context == null)
 				throw new UnauthorizedCommandException(SystemStateReport);
 
-			var server = user.Context.Server;
-
-			var currentAccount = server.Accounts.Current;
+			var jobsClient = new Lers.Rest.NodeJobsClient(user.Context.BaseUri.ToString(), user.Context.RestClient);
 
 			// Запрашиваем список невыполненных работ на объектах
+			var response = await jobsClient.GetListAsync(true);
 
-			var nodeJobs = server.NodeJobs
-				.GetListAsync()
-				.Result
-				.Where(x => x.PerformerAccount?.Id == currentAccount.Id && x.State != NodeJobState.Completed);
+			var nodeJobs = response.NodeJobList
+				.Where(x => x.PerformerAccountId == user.Current.Id && x.State != Lers.Rest.NodeJobState.Completed);
 
 			var sb = new StringBuilder();
 
 			foreach (var job in nodeJobs)
 			{
-				sb.AppendLine($"Задание: {job.Title}");
-				sb.AppendLine($"Объект учёта: {job.Node.Title}");
+				var jobNode = response.Nodes[job.NodeId.ToString()];
+
+				sb.AppendLine($"Задание: {job.Title}");				
+				sb.AppendLine($"Объект учёта: {jobNode.Title} ({jobNode.Address})");
 
 				var today = DateTime.Today;
 
@@ -453,7 +433,66 @@ namespace LersBot
 				sb.AppendLine("Нет невыполненных работ.");
 			}
 
-			bot.SendText(user.ChatId, sb.ToString());
+			await _bot.SendText(user.ChatId, sb.ToString());
+		}
+
+		protected override async System.Threading.Tasks.Task ExecuteAsync(CancellationToken stoppingToken)
+		{
+			logger.Info($"\r\n==========================================\r\n"
+						+ "=== Загрузка бота Telegram для сервера ЛЭРС УЧЁТ...\r\n"
+						+ "========================================== ");
+
+			_lifeTime.ApplicationStopping.Register(() => logger.Info("Bot stopped."));
+
+			try
+			{
+				logger.Info($"Starting bot.");
+
+				_bot.AddCommandHandler(HandleStart, StartCommand);
+				_bot.AddCommandHandler(ShowCurrents, GetCurrentsCommand);
+				_bot.AddCommandHandler(ShowNodes, GetNodesCommand);
+				_bot.AddCommandHandler(ShowMeasurePoints, GetMeasurePointsCommand);
+				_bot.AddCommandHandler(_notifier.ProcessSetNotifyOn, SetNotifyOnCommand);
+				_bot.AddCommandHandler(_notifier.ProcessSetNotifyOff, SetNotifyOffCommand);
+				_bot.AddCommandHandler(SendSystemStateReport, SystemStateReport);
+				_bot.AddCommandHandler(SendPortStatus, PortStatus);
+				_bot.AddCommandHandler(GetMyJobs, GetMyJobsCommand);
+				
+				await _bot.Start();
+
+				await _notifier.Start(stoppingToken);
+			}
+			catch (Exception exc)
+			{
+				logger.Info(exc, "Ошибка запуска бота.");
+
+				throw;
+			}
+		}
+
+		/// <summary>
+		/// Загружает статические дескрипторы с сервера.
+		/// </summary>
+		/// <returns></returns>
+		private async Task LoadDescriptors()
+		{
+			using var httpClient = new HttpClient();
+			var descriptorsClient = new Lers.Rest.DescriptorsClient(GetServerUri().ToString(), httpClient);
+
+			_dataParameters = (await descriptorsClient.GetListForDataParametersAsync())
+				.ToDictionary(x => x.DataParameter);
+		}
+
+		private Uri GetServerUri()
+		{
+			var uriBuilder = new UriBuilder
+			{
+				Host = _config.LersServerAddress,
+				Port = _config.LersServerPort,
+				Scheme = "http"
+			};
+
+			return uriBuilder.Uri;
 		}
 	}
 }

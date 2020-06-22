@@ -1,57 +1,36 @@
-﻿using System;
+﻿using LersBot.Bot.Core;
+using NLog.LayoutRenderers;
+using System;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Lers.Administration;
+using Telegram.Bot.Requests;
+/*using Lers.Administration;*/
 
 namespace LersBot
 {
 	/// <summary>
 	/// Класс, отправляющий уведомления клиентам.
 	/// </summary>
-	class Notifier
+	public class Notifier
 	{
-		private LersBot bot;
-
-		private BackgroundWorker notifyThread = new BackgroundWorker();
-
-		private CancellationTokenSource stopToken = new CancellationTokenSource();
-
+		private LersBot _bot;
+		private readonly UsersService _users;
 		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-
-		public Notifier(LersBot bot)
+		public Notifier(UsersService users, LersBot bot)
 		{
-			this.bot = bot;
-			this.notifyThread.DoWork += NotifyThread_DoWork;
+			_bot = bot;
+			_users = users;
 		}
 
-		private async void NotifyThread_DoWork(object sender, DoWorkEventArgs e)
-		{
-			await CheckNotifications();
-
-			while (!this.stopToken.IsCancellationRequested)
-			{
-				try
-				{
-					// Проверка запускается каждые 60 секунд
-					await Task.Delay(60000, this.stopToken.Token);
-
-					await CheckNotifications();
-				}
-				catch (OperationCanceledException)
-				{
-					return;
-				}
-			}
-		}
 
 		private async Task CheckNotifications()
 		{
 			// Проходим по всем зарегистрированным пользователям.
 
-			var userList = User.Where(x => x.Context != null);
+			var userList = _users.Where(x => x.Context != null);
 
 			foreach (var user in userList)
 			{
@@ -62,9 +41,7 @@ namespace LersBot
 						// Пользователь ещё не начал чат с ботом или отключил уведомления.
 						continue;
 					}
-
-					user.Connect();
-
+					
 					await CheckUserNotifications(user);
 				}
 				catch (Exception exc)
@@ -73,17 +50,25 @@ namespace LersBot
 				}
 			}
 
-			User.Save();
+			_users.Save();
 		}
 
 		private async Task CheckUserNotifications(User user)
 		{
-			if (!AccountReceivesNotificationsNow(user.Context.Server.Accounts.Current))
+			if (!AccountReceivesNotificationsNow(user.Current))
 			{
 				return;
 			}
 
-			var notifications = (await user.Context.Server.Notifications.GetListAsync()).OrderBy(x => x.Id);
+			var notificationsClient = new Lers.Rest.NotificationsClient(user.Context.BaseUri.ToString(),
+				user.Context.RestClient);
+
+			var endDate = DateTimeOffset.Now;
+			var startDate = endDate.AddDays(-30);
+
+			var response = await notificationsClient.GetNotificationsForPeriodAsync(startDate, endDate);
+
+			var notifications = response.Notifications.OrderBy(x => x.NotificationId);
 
 			if (!notifications.Any())
 			{
@@ -91,45 +76,37 @@ namespace LersBot
 			}
 
 			// Сохраним дату самого нового сообщения
-			Lers.Notification lastNotify = notifications.OrderBy(x => x.Id).Last();
+			Lers.Rest.Notification lastNotify = notifications.OrderBy(x => x.NotificationId).Last().Notification;
 
 			// При первом запуске уведомления не рассылаем.
+
 			try
 			{
 				if (user.Context.LastNotificationId != 0)
 				{
 					foreach (var notification in notifications)
 					{
-						if (notification.Id > user.Context.LastNotificationId)
+						if (notification.NotificationId > user.Context.LastNotificationId)
 						{
 							string text = "";
 
-							switch (notification.Importance)
+							text += notification.Notification.Importance switch
 							{
-								case Lers.Importance.Warn:
-									text += Emoji.Warning;
-									break;
+								Lers.Rest.Importance.Warn => Emoji.Warning,
+								Lers.Rest.Importance.Error => Emoji.StopSign,
+								_ => Emoji.InformationSource,
+							};
+							text += " " + notification.Notification.Message;
 
-								case Lers.Importance.Error:
-									text += Emoji.StopSign;
-									break;
-
-								default:
-									text += Emoji.InformationSource;
-									break;
+							if (!string.IsNullOrEmpty(notification.Notification.Url))
+							{
+								text += $"\r\n{notification.Notification.Url}";
 							}
 
-							text += " " + notification.Message;
-
-							if (!string.IsNullOrEmpty(notification.Url))
-							{
-								text += $"\r\n{notification.Url}";
-							}
-
-							await bot.SendTextAsync(user.ChatId, text);
+							await _bot.SendTextAsync(user.ChatId, text);
 
 							// Сохраним последнее отправленное сообщение.
-							lastNotify = notification;
+							lastNotify = notification.Notification;
 						}
 					}
 				}
@@ -138,11 +115,11 @@ namespace LersBot
 			{
 				// Сохраним в контекст пользователя информацию о последнем отправленном сообщении.
 				user.Context.LastNotificationId = lastNotify.Id;
-				user.Context.LastNotificationDate = lastNotify.DateTime;
+				user.Context.LastNotificationDate = lastNotify.DateTime.DateTime;
 			}
 		}
 
-		private static bool AccountReceivesNotificationsNow(Account current)
+		private static bool AccountReceivesNotificationsNow(Lers.Rest.Account current)
 		{
 			DateTime dtNow = DateTime.Now;
 
@@ -151,35 +128,53 @@ namespace LersBot
 			return nowTime >= current.NotifyStartTime && nowTime <= current.NotifyEndTime;
 		}
 
-		internal void Start()
+		internal async Task Start(CancellationToken stoppingToken)
 		{
-			this.notifyThread.RunWorkerAsync();
+			await CheckNotifications();
+
+			while (!stoppingToken.IsCancellationRequested)
+			{
+				try
+				{
+					// Проверка запускается каждые 60 секунд
+
+					await Task.Delay(60000, stoppingToken);
+
+					await CheckNotifications();
+				}
+				catch (OperationCanceledException)
+				{
+					return;
+				}
+			}
 		}
-
-		internal void Stop() => this.stopToken.Cancel();
-
-		internal void ProcessSetNotifyOn(User user, string[] arguments)
+		
+		internal Task ProcessSetNotifyOn(User user, string[] arguments)
 		{
 			if (user.Context == null)
 				throw new UnauthorizedCommandException(LersBotService.SetNotifyOnCommand);
 
 			user.Context.SendNotifications = true;
 
-			bot.SendText(user.ChatId, "Отправка уведомлений включена.");
+			_bot.SendText(user.ChatId, "Отправка уведомлений включена.");
 
-			User.Save();
+			_users.Save();
+
+			return Task.CompletedTask;
 		}
 
-		internal void ProcessSetNotifyOff(User user, string[] arguments)
+		internal Task ProcessSetNotifyOff(User user, string[] arguments)
 		{
 			if (user.Context == null)
 				throw new UnauthorizedCommandException(LersBotService.SetNotifyOffCommand);
 
 			user.Context.SendNotifications = false;
 
-			bot.SendText(user.ChatId, "Отправка уведомлений выключена.");
+			_bot.SendText(user.ChatId, "Отправка уведомлений выключена.");
 
-			User.Save();
+			_users.Save();
+
+			return Task.CompletedTask;
 		}
 	}
 }

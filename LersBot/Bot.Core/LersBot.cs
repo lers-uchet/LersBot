@@ -1,53 +1,84 @@
-﻿using System;
+﻿using LersBot.Bot.Core;
+using Microsoft.Extensions.Options;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Telegram.Bot;
 
 namespace LersBot
 {
-	using CommandHandler = Action<User, string[]>;
+	using CommandHandler = Func<User, string[], Task>;
 
 	/// <summary>
 	/// Класс для реализации механизма бота.
 	/// </summary>
-	class LersBot
+	public class LersBot
 	{
-		private Telegram.Bot.TelegramBotClient bot;
-
+		private readonly TelegramBotClient _bot;
+		private readonly UsersService _users;
 		private Dictionary<string, CommandHandler> commandHandlers = new Dictionary<string, CommandHandler>();
 
 		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
 
-		public string UserName => this.bot.GetMeAsync().Result.Username;
+		public async Task<string> GetUserName() => (await _bot.GetMeAsync()).Username;
 
-		public LersBot()
+		
+		public LersBot(IOptionsSnapshot<Config> optionsSnapshot, UsersService users)
 		{
-			this.bot = new Telegram.Bot.TelegramBotClient(Config.Instance.Token);
+			var options = optionsSnapshot.Value;
 
-			this.bot.OnMessage += Bot_OnMessage;
+			_bot = new TelegramBotClient(options.Token);
+			_users = users;
 		}
 
+		
 		/// <summary>
 		/// Запускает бота.
 		/// </summary>
-		internal void Start()
+		internal async Task Start()
 		{
-			// Инициируем подключения к серверу
+			_bot.OnMessage += Bot_OnMessage;
 
-			foreach (var user in User.Where(x => x.Context != null))
+			var toRemove = new List<User>();
+
+			// Инициируем подключения к серверу
+						
+			foreach (var user in _users.List)
 			{
-				user.Connect();
+				if (user.Context == null)
+				{
+					toRemove.Add(user);
+				}
+				else
+				{
+					try
+					{
+						await user.Authorize();
+					}
+					catch (Lers.Rest.LersException exc)
+					{						
+						logger.Warn($"Ошибка авторизации пользователя. {exc.Message}");
+						toRemove.Add(user);
+					}
+				}
 			}
 
-			this.bot.StartReceiving();
+			foreach (var user in toRemove)
+			{
+				_users.Remove(user);
+			}
+
+			_bot.StartReceiving();
 		}
 
-		private void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
+		
+		private async void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
 		{
 			// Обрабатываем только текстовые сообщения.
-			if (e.Message.Type != Telegram.Bot.Types.Enums.MessageType.TextMessage)
+			if (e.Message.Type != Telegram.Bot.Types.Enums.MessageType.Text)
 			{
 				return;
 			}
@@ -58,7 +89,7 @@ namespace LersBot
 
 			try
 			{
-				var user = User.Where(u => u.TelegramUserId == e.Message.From.Id).FirstOrDefault();
+				var user = _users.Where(u => u.TelegramUserId == e.Message.From.Id).FirstOrDefault();
 
 				if (user == null)
 				{
@@ -68,24 +99,24 @@ namespace LersBot
 						TelegramUserId = e.Message.From.Id
 					};
 
-					User.Add(user);
+					_users.Add(user);
 				}
 
 				// Обрабатываем команду.
-				ProcessCommand(user, e.Message.Text);
+				await ProcessCommand(user, e.Message.Text);
 			}
 			catch (Exception exc)
 			{
 				var message = $"Ошибка обработки команды. {exc.Message}";
 
-				bot.SendTextMessageAsync(chatId, message);
+				await _bot.SendTextMessageAsync(chatId, message);
 
 				logger.Error(message);
 			}
 		}
 
-
-		private void ProcessCommand(User user, string text)
+		
+		private async Task ProcessCommand(User user, string text)
 		{
 			// Разделяем сообщение на аргументы.
 			string[] commandFields = CommandArguments.Split(text);
@@ -102,7 +133,7 @@ namespace LersBot
 			CommandHandler handler;
 
 			// Пользователь может уже обрабатывать команду. В этом случае передадим в качестве
-			// текста команды выполняющуся команду, а в качестве аргументов весь текст сообщения.
+			// текста команды выполняющуюся команду, а в качестве аргументов весь текст сообщения.
 
 			if (user.CommandContext != null)
 			{
@@ -118,31 +149,27 @@ namespace LersBot
 
 			if (this.commandHandlers.TryGetValue(command, out handler))
 			{
+				// Проверяем, чтобы у пользователя был контекст.
+
 				if (IsAuthorizeRequired(handler))
 				{
-					if (user.Context != null)
-					{
-						// Подключаемся к серверу.
-
-						user.Connect();
-					}
-					else
-					{
+					if (user.Context == null)
+					{						
 						throw new UnauthorizedCommandException(command);
 					}
 				}
 
-				handler(user, arguments);
+				await handler(user, arguments);
 			}
 			else
 			{
-				SendText(user.ChatId, "Неизвестная команда");
+				await SendText(user.ChatId, "Неизвестная команда");
 			}
 		}
 
-		public void SendText(long chatId, string message)
+		public Task SendText(long chatId, string message)
 		{
-			SendTextAsync(chatId, message).Wait();
+			return SendTextAsync(chatId, message);
 		}
 
 		/// <summary>
@@ -155,17 +182,17 @@ namespace LersBot
 		{
 			try
 			{
-				await this.bot.SendTextMessageAsync(chatId, message);
+				await _bot.SendTextMessageAsync(chatId, message);
 			}
 			catch (Telegram.Bot.Exceptions.ApiRequestException exc) when (exc.ErrorCode == 403)
 			{
-				var user = User.FirstOrDefault(x => x.ChatId == chatId);
+				var user = _users.FirstOrDefault(x => x.ChatId == chatId);
 
 				if (user != null)
 				{
 					logger.Error($"Пользователь {user.Context.Login} запретил боту отправлять сообщения. Пользователь удаляется из списка.");
 
-					User.Remove(user);
+					_users.Remove(user);
 				}
 			}
 		}
@@ -178,16 +205,11 @@ namespace LersBot
 			}
 		}
 
-		internal void SendDocument(long chatId, MemoryStream stream, string caption, string fileName)
-		{
-			stream.Seek(0, SeekOrigin.Begin);
-
-			var document = default(Telegram.Bot.Types.FileToSend);
-
-			document.Content = stream;
-			document.Filename = fileName;
-
-			bot.SendDocumentAsync(chatId, document, caption).Wait();
+		internal async Task SendDocument(long chatId, Stream contentStream, string fileName, string caption)
+		{			
+			var document = new Telegram.Bot.Types.InputFiles.InputOnlineFile(contentStream, fileName);
+			
+			await _bot.SendDocumentAsync(chatId, document, caption);
 		}
 
 		private static bool IsAuthorizeRequired(CommandHandler handler)

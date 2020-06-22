@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿
+using Xunit;
 
 namespace LersBot.Tests
 {
@@ -10,110 +11,110 @@ namespace LersBot.Tests
 		/// <summary>
 		/// Проверяет что разделение сообщения на аргументы возвращает ожидаемые значения.
 		/// </summary>
-		[Test]
+		[Fact]
 		public void SplitArgumentsWithoutQuotes_ReturnsExpected()
 		{
 			string input = "one two three four";
 
 			string[] result = CommandArguments.Split(input);
 
-			Assert.AreEqual(4, result.Length);
+			Assert.Equal(4, result.Length);
 
-			Assert.AreEqual("one", result[0]);
-			Assert.AreEqual("two", result[1]);
-			Assert.AreEqual("three", result[2]);
-			Assert.AreEqual("four", result[3]);
+			Assert.Equal("one", result[0]);
+			Assert.Equal("two", result[1]);
+			Assert.Equal("three", result[2]);
+			Assert.Equal("four", result[3]);
 		}
 
 		/// <summary>
 		/// Проверяет что разделение сообщения на аргументы возвращает ожидаемые значения.
 		/// </summary>
-		[Test]
+		[Fact]
 		public void SplitExtraSpacedArgumentsWithoutQuotes_ReturnsExpected()
 		{
 			string input = "one two  three four";
 
 			string[] result = CommandArguments.Split(input);
 
-			Assert.AreEqual(4, result.Length);
+			Assert.Equal(4, result.Length);
 
-			Assert.AreEqual("one", result[0]);
-			Assert.AreEqual("two", result[1]);
-			Assert.AreEqual("three", result[2]);
-			Assert.AreEqual("four", result[3]);
+			Assert.Equal("one", result[0]);
+			Assert.Equal("two", result[1]);
+			Assert.Equal("three", result[2]);
+			Assert.Equal("four", result[3]);
 		}
 
 
 		/// <summary>
 		/// Проверяет что разделение сообщения на аргументы возвращает ожидаемые значения.
 		/// </summary>
-		[Test]
+		[Fact]
 		public void SplitArgumentsWithQuotes_ReturnsExpected()
 		{
 			string input = "one \"two three\" four";
 
 			string[] result = CommandArguments.Split(input);
 
-			Assert.AreEqual(3, result.Length);
+			Assert.Equal(3, result.Length);
 
-			Assert.AreEqual("one", result[0]);
-			Assert.AreEqual("two three", result[1]);
-			Assert.AreEqual("four", result[2]);
+			Assert.Equal("one", result[0]);
+			Assert.Equal("two three", result[1]);
+			Assert.Equal("four", result[2]);
 		}
 
 
 		/// <summary>
 		/// Проверяет что разделение сообщения на аргументы возвращает ожидаемые значения.
 		/// </summary>
-		[Test]
+		[Fact]
 		public void SplitArgumentsWithNonClosingQuotes_ReturnsExpected()
 		{
 			string input = "one \"two three four";
 
 			string[] result = CommandArguments.Split(input);
 
-			Assert.AreEqual(4, result.Length);
+			Assert.Equal(4, result.Length);
 
-			Assert.AreEqual("one", result[0]);
-			Assert.AreEqual("two", result[1]);
-			Assert.AreEqual("three", result[2]);
-			Assert.AreEqual("four", result[3]);
+			Assert.Equal("one", result[0]);
+			Assert.Equal("two", result[1]);
+			Assert.Equal("three", result[2]);
+			Assert.Equal("four", result[3]);
 		}
 
 
 		/// <summary>
 		/// Проверяет что разделение сообщения на аргументы возвращает ожидаемые значения.
 		/// </summary>
-		[Test]
+		[Fact]
 		public void SplitArgumentsWithQuotesAtBeginning_ReturnsExpected()
 		{
 			string input = "\"one \"two three four";
 
 			string[] result = CommandArguments.Split(input);
 
-			Assert.AreEqual(4, result.Length);
+			Assert.Equal(4, result.Length);
 
-			Assert.AreEqual("one ", result[0]);
-			Assert.AreEqual("two", result[1]);
-			Assert.AreEqual("three", result[2]);
-			Assert.AreEqual("four", result[3]);
+			Assert.Equal("one ", result[0]);
+			Assert.Equal("two", result[1]);
+			Assert.Equal("three", result[2]);
+			Assert.Equal("four", result[3]);
 		}
 
 
 		/// <summary>
 		/// Проверяет что разделение сообщения на аргументы возвращает ожидаемые значения.
 		/// </summary>
-		[Test]
+		[Fact]
 		public void SplitArgumentsWithQuotesAtEnd_ReturnsExpected()
 		{
 			string input = "one \"two three four\"";
 
 			string[] result = CommandArguments.Split(input);
 
-			Assert.AreEqual(2, result.Length);
+			Assert.Equal(2, result.Length);
 
-			Assert.AreEqual("one", result[0]);
-			Assert.AreEqual("two three four", result[1]);
+			Assert.Equal("one", result[0]);
+			Assert.Equal("two three four", result[1]);
 		}
 	}
 }

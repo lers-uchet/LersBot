@@ -1,5 +1,12 @@
-﻿using System;
-using System.Diagnostics;
+﻿using LersBot.Bot.Core;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
 
 namespace LersBot
 {
@@ -7,35 +14,45 @@ namespace LersBot
 	{
 		static void Main(string[] args)
 		{
-			bool runAsService = true;
+			Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+			Directory.SetCurrentDirectory(GetCurrentAssemblyDirectory());
 
-			if (args.Length > 0)
+			var hostBuilder = CreateHostBuilder(args.Where(x => x.ToUpperInvariant() != "/CONSOLE").ToArray())
+				.UseWindowsService();
+					
+			hostBuilder.Build().Run();
+		}
+
+		/// <summary>
+		/// Создаёт хост для запуска службы.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public static IHostBuilder CreateHostBuilder(string[] args) =>
+		Host.CreateDefaultBuilder(args)
+			.ConfigureAppConfiguration(configHost =>
 			{
-				string arg = args[0];
-
-				if (arg.ToLower() == "/console")
-				{
-					runAsService = false;
-				}
-			}
-
-
-			if (runAsService)
+				configHost.SetBasePath(GetCurrentAssemblyDirectory());
+				configHost.AddJsonFile("bot.config");
+				configHost.AddEnvironmentVariables("LERS_TELEGRAM_BOT_");
+				configHost.AddCommandLine(args);
+			})
+			.ConfigureServices((hostContext, services) =>
 			{
-				System.ServiceProcess.ServiceBase.Run(new LersBotService());
-			}
-			else
-			{
-				var service = new LersBotService();
+				services.Configure<Config>(hostContext.Configuration);
+				services.AddSingleton<UsersService>();
+				services.AddSingleton<LersBot>();
+				services.AddSingleton<Notifier>();
+				services.AddHostedService<LersBotService>();
+			});
 
-				service.Start();
 
-				Console.WriteLine("Press any key to exit");
+		private static string GetCurrentAssemblyDirectory()
+		{
+			string currentExe = Assembly.GetExecutingAssembly().Location;
 
-				Console.ReadKey();
-
-				service.MyStop();
-			}
+			return Path.GetDirectoryName(currentExe)
+				?? throw new InvalidOperationException("Cannot get directory name");
 		}
 	}
 }

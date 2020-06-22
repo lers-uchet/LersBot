@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Lers;
-using Lers.Core;
+using System.Threading.Tasks;
+using Lers.Rest;
 
 namespace LersBot
 {
 	static class ServerExtensions
 	{
-		public static IEnumerable<Node> GetNodes(this LersServer server, IEnumerable<string> criterias)
+		public static async Task<IEnumerable<Node>> GetNodes(this NodesClient client, IEnumerable<string> criterias)
 		{
 			if (criterias == null)
 			{
@@ -17,10 +17,12 @@ namespace LersBot
 
 			// Выбираем те объекты, у которых в имени и в адресе есть все переданные критерии
 
-			return server.Nodes.GetList().Where(x => string.Concat(x.Title, x.Address).ContainsAll(criterias));
-		}
+			var nodes = await client.GetNodesAsync(null, null, null, null, null, null, null, null);
 
-		public static IEnumerable<MeasurePoint> GetMeasurePoints(this LersServer server, IEnumerable<string> criterias)
+			return nodes.Nodes.Where(x => string.Concat(x.Title, x.Address).ContainsAll(criterias));
+		}
+		
+		public static async Task<IEnumerable<MeasurePoint>> GetMeasurePoints(this MeasurePointsClient server, IEnumerable<string> criterias)
 		{
 			if (criterias == null || !criterias.Any())
 			{
@@ -29,7 +31,11 @@ namespace LersBot
 
 			// Выбираем те точки учёта, у которых в имени и в адресе есть все переданные критерии
 
-			return server.MeasurePoints.GetList().Where(x => x.Type == MeasurePointType.Regular && string.Concat(x.FullTitle, x.Address).ContainsAll(criterias));
+			var measurePoints = await server.GetMeasurePointsAsync(null, null, MeasurePointType.Regular);
+
+			return measurePoints.MeasurePoints.Where(x => x.Type == MeasurePointType.Regular 
+				&& string.Concat(x.FullTitle, x.Address)
+				.ContainsAll(criterias));
 		}
 	}
 }
