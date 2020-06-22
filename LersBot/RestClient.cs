@@ -19754,7 +19754,7 @@ namespace Lers.Rest
             }
         }
     
-        /// <summary>Запускает опрос текущих значений.</summary>
+        /// <summary>Запускает постоянный опрос текущих значений.</summary>
         /// <param name="body">Параметры опроса.</param>
         /// <returns>Success</returns>
         /// <exception cref="LersException">A server side error occurred.</exception>
@@ -19764,7 +19764,7 @@ namespace Lers.Rest
         }
     
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>Запускает опрос текущих значений.</summary>
+        /// <summary>Запускает постоянный опрос текущих значений.</summary>
         /// <param name="body">Параметры опроса.</param>
         /// <returns>Success</returns>
         /// <exception cref="LersException">A server side error occurred.</exception>
@@ -45044,7 +45044,7 @@ namespace Lers.Rest
         public int? MeasurePointId { get; set; }
     
         /// <summary>Ссылка на новость.</summary>
-        [Newtonsoft.Json.JsonProperty("url", Required = Newtonsoft.Json.Required.DisallowNull, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        [Newtonsoft.Json.JsonProperty("url", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string Url { get; set; }
     
     
