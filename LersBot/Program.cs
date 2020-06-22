@@ -34,6 +34,7 @@ namespace LersBot
 			{
 				configHost.SetBasePath(GetCurrentAssemblyDirectory());
 				configHost.AddJsonFile("bot.config");
+				configHost.AddEnvironmentVariables("LERS_TELEGRAM_BOT_");
 				configHost.AddCommandLine(args);
 			})
 			.ConfigureServices((hostContext, services) =>
