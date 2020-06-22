@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Net.Http;
 
 namespace LersBot.Bot.Core
 {
 	/// <summary>
 	/// Контекст пользователя ЛЭРС УЧЁТ, связываемый с пользователем Telegram.
 	/// </summary>
-	class LersContext
+	public class LersContext : IDisposable
 	{
 		/// <summary>
 		/// Имя пользователя ЛЭРС УЧЁТ.
@@ -17,11 +18,20 @@ namespace LersBot.Bot.Core
 		/// </summary>
 		public string Password { get; set; }
 
-		/*/// <summary>
+		/// <summary>
 		/// Подключение к серверу ЛЭРС УЧЁТ, связанное с пользователем.
 		/// </summary>
-		internal Lers.LersServer Server;*/
+		public HttpClient RestClient { get; } = new HttpClient();
 
+		/// <summary>
+		/// Базовый URI сервера.
+		/// </summary>
+		public Uri BaseUri
+		{
+			get => RestClient.BaseAddress;
+			set => RestClient.BaseAddress = value;
+		}
+		
 		/// <summary>
 		/// Дата последнего отправленного уведомления.
 		/// </summary>
@@ -36,5 +46,17 @@ namespace LersBot.Bot.Core
 		/// Признак включения или отключения отправки уведомлений из центра.
 		/// </summary>
 		public bool SendNotifications = true;
+
+		/// <summary>
+		/// Токен авторизации на сервере.
+		/// </summary>
+		public string Token { get; set; }
+
+		public LersContext(Uri baseUri)
+		{
+			BaseUri = baseUri;
+		}
+
+		public void Dispose() => RestClient.Dispose();
 	}
 }

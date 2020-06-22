@@ -1,11 +1,12 @@
-﻿using System;
+﻿using LersBot.Bot.Core;
+using System.Threading.Tasks;
 
 namespace LersBot
 {
 	/// <summary>
 	/// Пользователь бота.
 	/// </summary>
-	class User
+	public class User
 	{
 		/// <summary>
 		/// Идентификатор пользователя Telegram.
@@ -21,7 +22,7 @@ namespace LersBot
 		/// <summary>
 		/// Контекст сервера ЛЭРС УЧЁТ.
 		/// </summary>
-		public LersContext Context;
+		public LersContext Context { get; set; }
 
 
 		/// <summary>
@@ -29,34 +30,51 @@ namespace LersBot
 		/// </summary>
 		internal CommandContext CommandContext { get; set; }
 
+		public Lers.Rest.Account Current { get; private set; }
+
+		public int CurrentId { get; private set; }
+
+		public User()
+		{
+
+		}
+
+		public async Task Authorize()
+		{
+			Context.RestClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Context.Token);
+
+			var loginClient = new Lers.Rest.LoginClient(Context.BaseUri.ToString(), Context.RestClient);
+
+			Current = (await loginClient.GetCurrentLoginAsync()).Account;
+		}
 
 		/// <summary>
 		/// Устанавливает подключение к серверу ЛЭРС УЧЁТ.
 		/// </summary>
-		public void Connect()
-		{
-			/*if (this.Context.Server == null)
+		public async Task Connect(string login, string password)
+		{			
+			Context.RestClient.DefaultRequestHeaders.Authorization = null;
+
+			var loginClient = new Lers.Rest.LoginClient(Context.BaseUri.ToString(), Context.RestClient);
+
+			var response = await loginClient.LoginPlainAsync(new Lers.Rest.AuthenticatePlainRequestParameters
 			{
-				this.Context.Server = new Lers.LersServer("Бот Telegram");
+				Login = login,
+				Password = password,
+				Application = "Telegram Bot"
+			});
+
+			// Сохраняем авторизацию.
+
+			if (!string.IsNullOrEmpty(response.Token))
+			{
+				Context.Token = response.Token;
+				Context.RestClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", response.Token);
 			}
 
-			if (!this.Context.Server.IsConnected)
-			{
-				var auth = new Lers.Networking.BasicAuthenticationInfo(this.Context.Login,
-					Lers.Networking.SecureStringHelper.ConvertToSecureString(this.Context.Password));
+			// Запрашиваем текущего пользователя.
 
-				this.Context.Server.VersionMismatch += (sender, e) => e.Ignore = true;
-
-				try
-				{
-					this.Context.Server.Connect(Config.Instance.LersServerAddress, Config.Instance.LersServerPort, auth);
-				}
-				catch (Lers.Networking.AuthorizationFailedException exc)
-				{
-					logger.Error($"Ошибка подключения пользователя {this.Context.Login} к серверу {Config.Instance.LersServerAddress}. {exc.Message}");
-					Remove(this);
-				}
-			}*/
+			Current = (await loginClient.GetCurrentLoginAsync()).Account;			
 		}
 	}	
 }

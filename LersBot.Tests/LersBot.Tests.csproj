@@ -3,4 +3,8 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\LersUchet\LersCore\Lers.Utils\Lers.Utils.csproj" />
+  </ItemGroup>
 </Project>

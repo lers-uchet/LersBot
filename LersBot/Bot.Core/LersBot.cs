@@ -4,19 +4,20 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Telegram.Bot;
 
 namespace LersBot
 {
-	using CommandHandler = Action<User, string[]>;
+	using CommandHandler = Func<User, string[], Task>;
 
 	/// <summary>
 	/// Класс для реализации механизма бота.
 	/// </summary>
-	class LersBot
+	public class LersBot
 	{
-		private readonly Telegram.Bot.TelegramBotClient _bot;
+		private readonly TelegramBotClient _bot;
 		private readonly UsersService _users;
 		private Dictionary<string, CommandHandler> commandHandlers = new Dictionary<string, CommandHandler>();
 
@@ -38,16 +39,38 @@ namespace LersBot
 		/// <summary>
 		/// Запускает бота.
 		/// </summary>
-		internal void Start()
+		internal async Task Start()
 		{
 			_bot.OnMessage += Bot_OnMessage;
 
+			var toRemove = new List<User>();
+
 			// Инициируем подключения к серверу
-			/*
-			foreach (var user in User.Where(x => x.Context != null))
+						
+			foreach (var user in _users.List)
 			{
-				user.Connect();
-			}*/
+				if (user.Context == null)
+				{
+					toRemove.Add(user);
+				}
+				else
+				{
+					try
+					{
+						await user.Authorize();
+					}
+					catch (Lers.Rest.LersException exc)
+					{						
+						logger.Warn($"Ошибка авторизации пользователя. {exc.Message}");
+						toRemove.Add(user);
+					}
+				}
+			}
+
+			foreach (var user in toRemove)
+			{
+				_users.Remove(user);
+			}
 
 			_bot.StartReceiving();
 		}
@@ -81,7 +104,7 @@ namespace LersBot
 				}
 
 				// Обрабатываем команду.
-				ProcessCommand(user, e.Message.Text);
+				await ProcessCommand(user, e.Message.Text);
 			}
 			catch (Exception exc)
 			{
@@ -94,7 +117,7 @@ namespace LersBot
 		}
 
 		
-		private void ProcessCommand(User user, string text)
+		private async Task ProcessCommand(User user, string text)
 		{
 			// Разделяем сообщение на аргументы.
 			string[] commandFields = CommandArguments.Split(text);
@@ -127,31 +150,27 @@ namespace LersBot
 
 			if (this.commandHandlers.TryGetValue(command, out handler))
 			{
+				// Проверяем, чтобы у пользователя был контекст.
+
 				if (IsAuthorizeRequired(handler))
 				{
-					if (user.Context != null)
-					{
-						// Подключаемся к серверу.
-
-						user.Connect();
-					}
-					else
-					{
+					if (user.Context == null)
+					{						
 						throw new UnauthorizedCommandException(command);
 					}
 				}
 
-				handler(user, arguments);
+				await handler(user, arguments);
 			}
 			else
 			{
-				SendText(user.ChatId, "Неизвестная команда");
+				await SendText(user.ChatId, "Неизвестная команда");
 			}
 		}
 
-		public void SendText(long chatId, string message)
+		public Task SendText(long chatId, string message)
 		{
-			SendTextAsync(chatId, message).Wait();
+			return SendTextAsync(chatId, message);
 		}
 
 		/// <summary>
@@ -187,12 +206,10 @@ namespace LersBot
 			}
 		}
 
-		internal async Task SendDocument(long chatId, MemoryStream stream, string caption, string fileName)
-		{
-			stream.Seek(0, SeekOrigin.Begin);
-
-			var document = new Telegram.Bot.Types.InputFiles.InputOnlineFile(stream, fileName);
-
+		internal async Task SendDocument(long chatId, Stream contentStream, string fileName, string caption)
+		{			
+			var document = new Telegram.Bot.Types.InputFiles.InputOnlineFile(contentStream, fileName);
+			
 			await _bot.SendDocumentAsync(chatId, document, caption);
 		}
 

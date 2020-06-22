@@ -5,7 +5,7 @@ namespace LersBot
 	/// <summary>
 	/// Параметры конфигурации бота.
 	/// </summary>
-	internal class Config
+	public class Config
 	{
 		public static readonly string UsersFilePath = Environment.ExpandEnvironmentVariables(@"%LOCALAPPDATA%\LERS\LersBot\users.json");
 

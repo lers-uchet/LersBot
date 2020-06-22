@@ -14,7 +14,7 @@ namespace LersBot.Bot.Core
 		/// <summary>
 		/// Список зарегистрированных пользователей.
 		/// </summary>
-		private List<User> List { get; } =  new List<User>();
+		internal List<User> List { get; } =  new List<User>();
 
 		public UsersService()
 		{

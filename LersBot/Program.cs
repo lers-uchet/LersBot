@@ -40,6 +40,7 @@ namespace LersBot
 			{
 				services.Configure<Config>(hostContext.Configuration);
 				services.AddSingleton<UsersService>();
+				services.AddSingleton<LersBot>();
 				services.AddHostedService<LersBotService>();
 			});
 
